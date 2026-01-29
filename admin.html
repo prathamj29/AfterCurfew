@@ -136,6 +136,12 @@
         .form-group label { display: block; margin-bottom: 5px; color: #aaa; }
         .form-group input, .form-group select { width: 100%; box-sizing: border-box; }
         
+        /* File Input Styling */
+        input[type="file"] {
+            border: 1px dashed #666;
+            cursor: pointer;
+        }
+
         #toast {
             position: fixed;
             bottom: 20px;
@@ -216,11 +222,13 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Image URL (e.g., images/maggi.png)</label>
-            <input type="text" id="new-image" value="images/placeholder.png">
+            <label>Product Image</label>
+            <input type="file" id="new-image-file" accept="image/*">
+            <p style="font-size: 12px; color: #666; margin-top: 4px;">Or use a URL:</p>
+            <input type="text" id="new-image-url" placeholder="images/placeholder.png">
         </div>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button onclick="addProduct()" style="flex: 1;">Add</button>
+            <button onclick="addProduct()" id="add-btn" style="flex: 1;">Add</button>
             <button onclick="document.getElementById('add-modal').classList.add('hidden')" style="background: #333; color: white; flex: 1;">Cancel</button>
         </div>
     </div>
@@ -242,8 +250,6 @@
         document.getElementById('gh-username').value = config.user;
         document.getElementById('gh-repo').value = config.repo;
         document.getElementById('gh-token').value = config.token;
-        // Auto-login if token exists, but let user confirm in case it's wrong
-        // login(); 
     }
 
     async function login() {
@@ -286,17 +292,11 @@
             appJsContent = new TextDecoder().decode(Uint8Array.from(atob(data.content), c => c.charCodeAt(0)));
 
             // Extract products array using Regex
-            // Looks for: const products = [ ... ];
             const match = appJsContent.match(/const products = \[([\s\S]*?)\];/);
             
             if (match && match[1]) {
-                // Dangerous eval? No, let's JSON parse it safely by adding brackets
-                // But the file uses JS object syntax (keys without quotes), not strict JSON.
-                // We need to be careful.
-                // Simplest way: "eval" it in a confined scope or use Function constructor.
-                // Since this is an admin panel for the owner, it's relatively safe.
                 const productString = `[${match[1]}]`;
-                products = eval(productString); // We trust our own code.
+                products = eval(productString); 
                 renderProducts();
             } else {
                 throw new Error('Could not find "products" array in app.js');
@@ -340,52 +340,109 @@
     function updateProduct(index, field, value) {
         if (field === 'price') value = Number(value);
         products[index][field] = value;
-        document.getElementById('save-btn').textContent = '💾 Publish Updates (Unsaved)';
-        document.getElementById('save-btn').style.background = '#eab308'; // Yellow
+        markUnsaved();
     }
 
     function toggleStock(index) {
         products[index].inStock = !products[index].inStock;
         renderProducts();
-        document.getElementById('save-btn').textContent = '💾 Publish Updates (Unsaved)';
-        document.getElementById('save-btn').style.background = '#eab308';
+        markUnsaved();
     }
 
     function showAddModal() {
         document.getElementById('add-modal').classList.remove('hidden');
+        document.getElementById('new-image-file').value = '';
+        document.getElementById('new-image-url').value = '';
     }
 
-    function addProduct() {
+    async function addProduct() {
         const name = document.getElementById('new-name').value;
         const price = Number(document.getElementById('new-price').value);
         const category = document.getElementById('new-category').value;
-        const image = document.getElementById('new-image').value;
+        const fileInput = document.getElementById('new-image-file');
+        const urlInput = document.getElementById('new-image-url');
 
         if (!name || !price) return alert('Name and Price required');
 
-        products.push({
-            id: crypto.randomUUID(),
-            name,
-            description: 'New product',
-            category,
-            price,
-            image,
-            inStock: true
+        const btn = document.getElementById('add-btn');
+        btn.disabled = true;
+        btn.textContent = 'Uploading...';
+
+        let imagePath = urlInput.value || 'images/placeholder.png';
+
+        try {
+            // Handle File Upload if selected
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                imagePath = await uploadImageToGitHub(file);
+            }
+
+            products.push({
+                id: crypto.randomUUID(),
+                name,
+                description: 'New product',
+                category,
+                price,
+                image: imagePath,
+                inStock: true
+            });
+
+            document.getElementById('add-modal').classList.add('hidden');
+            renderProducts();
+            markUnsaved();
+
+        } catch (e) {
+            alert('Error uploading image: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Add';
+        }
+    }
+
+    async function uploadImageToGitHub(file) {
+        // 1. Read file as Base64
+        const content = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',')[1]); // Remove data: prefix
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
         });
 
-        document.getElementById('add-modal').classList.add('hidden');
-        renderProducts();
-        document.getElementById('save-btn').textContent = '💾 Publish Updates (Unsaved)';
-        document.getElementById('save-btn').style.background = '#eab308';
+        // 2. Generate unique filename
+        const ext = file.name.split('.').pop();
+        const filename = `images/${Date.now()}-${Math.floor(Math.random()*1000)}.${ext}`;
+        const url = `https://api.github.com/repos/${config.user}/${config.repo}/contents/${filename}`;
+
+        // 3. Upload to GitHub
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${config.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: `Upload ${file.name} via Admin`,
+                content: content
+            })
+        });
+
+        if (!res.ok) throw new Error('Failed to upload image to GitHub');
+        
+        // Return the path relative to repo root
+        return filename;
     }
 
     function deleteProduct(index) {
         if(confirm('Are you sure?')) {
             products.splice(index, 1);
             renderProducts();
-            document.getElementById('save-btn').textContent = '💾 Publish Updates (Unsaved)';
-            document.getElementById('save-btn').style.background = '#eab308';
+            markUnsaved();
         }
+    }
+
+    function markUnsaved() {
+        document.getElementById('save-btn').textContent = '💾 Publish Updates (Unsaved)';
+        document.getElementById('save-btn').style.background = '#eab308';
     }
 
     async function pushChanges() {
@@ -393,20 +450,13 @@
         btn.textContent = 'Publishing...';
         btn.disabled = true;
 
-        // 1. Convert products array back to properly formatted string
-        // We manually stringify to match the specific format of app.js (optional, but cleaner)
-        // Or just use JSON.stringify and regex replace.
-        // The original file used specific indentation. Let's try to preserve it slightly.
         const productsJson = JSON.stringify(products, null, 2);
         
-        // 2. Replace the array in the original file content
         // Regex: const products = [ ... ];
         const newFileContent = appJsContent.replace(/const products = \[([\s\S]*?)\];/, `const products = ${productsJson};`);
 
-        // 3. Encode to Base64 (UTF-8 safe)
         const contentEncoded = btoa(unescape(encodeURIComponent(newFileContent)));
 
-        // 4. Push to GitHub
         const url = `https://api.github.com/repos/${config.user}/${config.repo}/contents/js/app.js`;
         
         try {
@@ -419,7 +469,7 @@
                 body: JSON.stringify({
                     message: 'Update products via Admin Panel',
                     content: contentEncoded,
-                    sha: fileSha // Required to update existing file
+                    sha: fileSha 
                 })
             });
 
@@ -429,7 +479,7 @@
             }
 
             const data = await response.json();
-            fileSha = data.content.sha; // Update SHA for next save
+            fileSha = data.content.sha; 
 
             showToast('Live Updated Successfully!');
             btn.textContent = '💾 Publish Updates';
