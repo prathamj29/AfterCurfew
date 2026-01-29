@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
     "name": "Maggi Instant Noodles",
     "description": "Classic Maggi, 2-minute preparation",
     "category": "snacks",
-    "price": 25,
+    "price": 20,
     "image": "images/maggi20.png",
     "inStock": true
   },
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
     "name": "Diet Coke 300ml",
     "description": "Zero sugar, full flavor, caffeine boost - 300ml can",
     "category": "drinks",
-    "price": 45,
+    "price": 50,
     "image": "images/dietcoke_300ml_45.png",
     "inStock": true
   },
