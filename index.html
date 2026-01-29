@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AfterCurfew - Late Night Delivery</title>
+    <meta name="description" content="Order late night snacks, drinks, and chocolates for delivery">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a1a">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Enhanced Header with Navigation -->
+    <header class="app-header">
+        <div class="header-main">
+            <button class="nav-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <h1 class="app-title logo-container" id="logo">
+                <span class="logo-text">AfterCurfew</span>
+                <span class="logo-icon">🌙</span>
+            </h1>
+            <!-- Removed Account Button -->
+        </div>
+
+        <!-- Side Navigation -->
+        <nav class="side-nav" id="side-nav" aria-label="Main navigation" hidden>
+            <div class="nav-header">
+                <h2 class="nav-title">Menu</h2>
+                <button class="nav-close" id="nav-close" aria-label="Close menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <ul class="nav-list">
+                <li><a href="#" class="nav-link active" data-page="home" aria-label="Home page">Home</a></li>
+                <li><a href="#" class="nav-link" data-page="orders" aria-label="My Orders">My Orders</a></li> <!-- Can now view without login -->
+                <li><a href="#" class="nav-link" data-page="favorites" aria-label="Favorites">Favorites</a></li>
+                <!-- Removed Account Link -->
+                <li><a href="#" class="nav-link" data-page="help" aria-label="Help & Support">Help & Support</a></li>
+            </ul>
+            <!-- New Theme Selector Section in Side Nav -->
+            <div class="nav-theme-section">
+                <h3 class="nav-theme-title">Theme</h3>
+                <div class="nav-theme-selector">
+                    <label class="nav-theme-option">
+                        <input type="radio" name="nav-theme" value="dark" id="nav-theme-dark" checked>
+                        <span class="nav-theme-label">Dark Theme</span>
+                    </label>
+                    <label class="nav-theme-option">
+                        <input type="radio" name="nav-theme" value="colorful" id="nav-theme-colorful">
+                        <span class="nav-theme-label">Colorful Theme</span>
+                    </label>
+                    <label class="nav-theme-option">
+                        <input type="radio" name="nav-theme" value="avengers" id="nav-theme-avengers">
+                        <span class="nav-theme-label">Avengers Theme</span>
+                    </label>
+                    <label class="nav-theme-option">
+                        <input type="radio" name="nav-theme" value="barbie" id="nav-theme-barbie">
+                        <span class="nav-theme-label">Barbie Theme</span>
+                    </label>
+                </div>
+            </div>
+            <!-- End Theme Selector Section -->
+            <div class="nav-footer">
+                <!-- Removed Logout Button -->
+            </div>
+        </nav>
+
+        <!-- Overlay for side navigation -->
+        <div class="nav-overlay" id="nav-overlay" aria-hidden="true" hidden></div>
+    </header>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+        <div class="search-bar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="search" id="search-input" placeholder="Search products..." aria-label="Search products">
+        </div>
+    </div>
+
+    <!-- Category Pills -->
+    <div class="category-container" role="tablist" aria-label="Product categories">
+        <button class="category-pill active" role="tab" data-category="all" aria-selected="true" aria-controls="all-products">All Items</button>
+        <button class="category-pill" role="tab" data-category="snacks" aria-selected="false" aria-controls="snacks-products">Snacks</button>
+        <button class="category-pill" role="tab" data-category="drinks" aria-selected="false" aria-controls="drinks-products">Drinks</button>
+        <button class="category-pill" role="tab" data-category="chocolates" aria-selected="false" aria-controls="chocolates-products">Chocolates</button>
+    </div>
+
+    <!-- Product Grid -->
+    <main class="main-content">
+        <div class="product-grid" id="all-products" role="tabpanel">
+            <!-- Product 1 - Maggi 20 -->
+            <article class="product-card" data-category="snacks" data-id="1" data-stock="true" role="article" aria-label="Maggi Instant Noodles ₹20">
+                <div class="product-image-container">
+                    <img src="images/maggi20.png" alt="Maggi Instant Noodles ₹20" class="product-image" loading="lazy" />
+                    <button class="favorite-button" aria-label="Add Maggi to favorites">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="product-info">
+                    <h3 class="product-name">Maggi Instant Noodles</h3>
+                    <p class="product-description">Classic Maggi, 2-minute preparation</p>
+                    <div class="product-footer">
+                        <div class="stock-status in-stock">
+                            <span class="stock-indicator stock-in"></span>
+                            <span class="stock-label in-stock">In Stock</span>
+                        </div>
+                        <span class="product-price">₹20</span>
+                        <button class="add-button" data-name="Maggi Instant Noodles" data-price="20" aria-label="Add Maggi ₹20 to cart">Add to Cart</button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Product 2 - Maggi Cup Cheesy 80 -->
+            <article class="product-card" data-category="snacks" data-id="2" data-stock="true" role="article" aria-label="Maggi Cup Cheesy ₹80">
+                <div class="product-image-container">
+                    <img src="images/maggi_cup_cheesy_80.png" alt="Maggi Cup Cheesy ₹80" class="product-image" loading="lazy" />
+                    <button class="favorite-button" aria-label="Add Maggi Cup Cheesy to favorites">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="product-info">
+                    <h3 class="product-name">Maggi Cup Cheesy</h3>
+                    <p class="product-description">Hot, cheesy noodles ready in a cup</p>
+                    <div class="product-footer">
+                        <div class="stock-status in-stock">
+                            <span class="stock-indicator stock-in"></span>
+                            <span class="stock-label in-stock">In Stock</span>
+                        </div>
+                        <span class="product-price">₹80</span>
+                        <button class="add-button" data-name="Maggi Cup Cheesy" data-price="80" aria-label="Add Maggi Cup Cheesy ₹80 to cart">Add to Cart</button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Product 3 - Maggi Cup Chilli 60 -->
+            <article class="product-card" data-category="snacks" data-id="3" data-stock="true" role="article" aria-label="Maggi Cup Chilli ₹60">
+                <div class="product-image-container">
+                    <img src="images/maggi_cup_chilli_60.png" alt="Maggi Cup Chilli ₹60" class="product-image" loading="lazy" />
+                    <button class="favorite-button" aria-label="Add Maggi Cup Chilli to favorites">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="product-info">
+                    <h3 class="product-name">Maggi Cup Chilli</h3>
+                    <p class="product-description">Spicy, tangy chilli flavor in convenient cup</p>
+                    <div class="product-footer">
+                        <div class="stock-status in-stock">
+                            <span class="stock-indicator stock-in"></span>
+                            <span class="stock-label in-stock">In Stock</span>
+                        </div>
+                        <span class="product-price">₹60</span>
+                        <button class="add-button" data-name="Maggi Cup Chilli" data-price="60" aria-label="Add Maggi Cup Chilli ₹60 to cart">Add to Cart</button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Product 4 - Diet Coke 45 -->
+            <article class="product-card" data-category="drinks" data-id="4" data-stock="true" role="article" aria-label="Diet Coke 300ml ₹45">
+                <div class="product-image-container">
+                    <img src="images/dietcoke_300ml_45.png" alt="Diet Coke 300ml ₹45" class="product-image" loading="lazy" />
+                    <button class="favorite-button" aria-label="Add Diet Coke to favorites">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="product-info">
+                    <h3 class="product-name">Diet Coke 300ml</h3>
+                    <p class="product-description">Zero sugar, full flavor, caffeine boost - 300ml can</p>
+                    <div class="product-footer">
+                        <div class="stock-status in-stock">
+                            <span class="stock-indicator stock-in"></span>
+                            <span class="stock-label in-stock">In Stock</span>
+                        </div>
+                        <span class="product-price">₹45</span>
+                        <button class="add-button" data-name="Diet Coke 300ml" data-price="45" aria-label="Add Diet Coke ₹45 to cart">Add to Cart</button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Product 5 - Nissin Cheesy 60 -->
+            <article class="product-card" data-category="snacks" data-id="5" data-stock="true" role="article" aria-label="Nissin Cup Noodles Cheesy ₹60">
+                <div class="product-image-container">
+                    <img src="images/nissin_cheesy_60.png" alt="Nissin Cup Noodles Cheesy ₹60" class="product-image" loading="lazy" />
+                    <button class="favorite-button" aria-label="Add Nissin Cup Noodles Cheesy to favorites">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="product-info">
+                    <h3 class="product-name">Nissin Cup Noodles Cheesy</h3>
+                    <p class="product-description">Creamy cheesy flavor in convenient cup</p>
+                    <div class="product-footer">
+                        <div class="stock-status in-stock">
+                            <span class="stock-indicator stock-in"></span>
+                            <span class="stock-label in-stock">In Stock</span>
+                        </div>
+                        <span class="product-price">₹60</span>
+                        <button class="add-button" data-name="Nissin Cup Noodles Cheesy" data-price="60" aria-label="Add Nissin Cup Noodles ₹60 to cart">Add to Cart</button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Product 6 - Nissin Kimchi 60 -->
+            <article class="product-card" data-category="snacks" data-id="6" data-stock="true" role="article" aria-label="Nissin Cup Noodles Kimchi ₹60">
+                <div class="product-image-container">
+                    <img src="images/nissin_kimchi_60.png" alt="Nissin Cup Noodles Kimchi ₹60" class="product-image" loading="lazy" />
+                    <button class="favorite-button" aria-label="Add Nissin Cup Noodles Kimchi to favorites">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="product-info">
+                    <h3 class="product-name">Nissin Cup Noodles Kimchi</h3>
+                    <p class="product-description">Spicy Korean kimchi flavor sensation</p>
+                    <div class="product-footer">
+                        <div class="stock-status in-stock">
+                            <span class="stock-indicator stock-in"></span>
+                            <span class="stock-label in-stock">In Stock</span>
+                        </div>
+                        <span class="product-price">₹60</span>
+                        <button class="add-button" data-name="Nissin Cup Noodles Kimchi" data-price="60" aria-label="Add Nissin Cup Noodles ₹60 to cart">Add to Cart</button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Product 7 - Monster Energy 100 -->
+            <article class="product-card" data-category="drinks" data-id="7" data-stock="true" role="article" aria-label="Monster Energy Drink ₹100">
+                <div class="product-image-container">
+                    <img src="images/monster_100.png" alt="Monster Energy Drink ₹100" class="product-image" loading="lazy" />
+                    <button class="favorite-button" aria-label="Add Monster Energy to favorites">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="product-info">
+                    <h3 class="product-name">Monster Energy Drink</h3>
+                    <p class="product-description">Energy drink for that extra boost</p>
+                    <div class="product-footer">
+                        <div class="stock-status in-stock">
+                            <span class="stock-indicator stock-in"></span>
+                            <span class="stock-label in-stock">In Stock</span>
+                        </div>
+                        <span class="product-price">₹100</span>
+                        <button class="add-button" data-name="Monster Energy Drink" data-price="100" aria-label="Add Monster Energy ₹100 to cart">Add to Cart</button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Product 8 - Maggi Cup Manchurian 80 -->
+            <article class="product-card" data-category="snacks" data-id="8" data-stock="true" role="article" aria-label="Maggi Cup Manchurian ₹80">
+                <div class="product-image-container">
+                    <img src="images/maggi_cup_manchurian_80.png" alt="Maggi Cup Manchurian ₹80" class="product-image" loading="lazy" />
+                    <button class="favorite-button" aria-label="Add Maggi Cup Manchurian to favorites">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="product-info">
+                    <h3 class="product-name">Maggi Cup Manchurian</h3>
+                    <p class="product-description">Tangy manchurian flavor in convenient cup</p>
+                    <div class="product-footer">
+                        <div class="stock-status in-stock">
+                            <span class="stock-indicator stock-in"></span>
+                            <span class="stock-label in-stock">In Stock</span>
+                        </div>
+                        <span class="product-price">₹80</span>
+                        <button class="add-button" data-name="Maggi Cup Manchurian" data-price="80" aria-label="Add Maggi Cup Manchurian ₹80 to cart">Add to Cart</button>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </main>
+
+    <!-- Cart Bar -->
+    <div id="cart-bar" class="cart-bar hidden" aria-label="Shopping cart">
+        <div class="cart-info">
+            <span class="cart-label">Cart</span>
+            <span id="cart-total" class="cart-total">₹0</span>
+        </div>
+        <button id="view-cart" class="view-cart-button" aria-label="View shopping cart">View Cart</button>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title">
+        <div class="modal-overlay"></div>
+        <div class="modal-content cart-modal">
+            <div class="modal-header">
+                <h2 id="cart-modal-title">Your Cart</h2>
+                <button id="close-cart" class="close-button" aria-label="Close cart">&times;</button>
+            </div>
+            <div id="cart-items" class="cart-items">
+                <p class="empty-cart">Your cart is empty</p>
+            </div>
+            <div class="cart-footer">
+                <div class="total-row">
+                    <span>Total:</span>
+                    <span id="modal-total">₹0</span>
+                </div>
+                <button id="checkout-button" class="checkout-button" aria-label="Proceed to checkout">Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkout-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="checkout-modal-title">
+        <div class="modal-overlay"></div>
+        <div class="modal-content checkout-modal">
+            <div class="modal-header">
+                <h2 id="checkout-modal-title">Checkout</h2>
+                <button id="close-checkout" class="close-button" aria-label="Close checkout form">&times;</button>
+            </div>
+            <form id="checkout-form" class="checkout-form" novalidate>
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" required placeholder="John Doe" aria-describedby="name-error">
+                    <div id="name-error" class="error-message" role="alert" aria-live="polite"></div>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" required placeholder="+91 98765 43210" aria-describedby="phone-error">
+                    <div id="phone-error" class="error-message" role="alert" aria-live="polite"></div>
+                </div>
+                <div class="form-group">
+                    <label for="floor">Floor Number</label>
+                    <input type="text" id="floor" name="floor" required placeholder="e.g., 3rd floor" aria-describedby="floor-error">
+                    <div id="floor-error" class="error-message" role="alert" aria-live="polite"></div>
+                </div>
+                <div class="form-group">
+                    <label for="room">Room Number</label>
+                    <input type="text" id="room" name="room" required placeholder="e.g., Room 305" aria-describedby="room-error">
+                    <div id="room-error" class="error-message" role="alert" aria-live="polite"></div>
+                </div>
+                <div class="form-group">
+                    <label for="instructions">Special Instructions (Optional)</label>
+                    <textarea id="instructions" name="instructions" placeholder="Leave at door, ring twice..."></textarea>
+                </div>
+                <div class="form-footer">
+                    <button type="submit" class="submit-button">Place Order - <span id="checkout-total">₹0</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmation-title">
+        <div class="modal-overlay"></div>
+        <div class="modal-content confirmation-modal">
+            <div class="confirmation-content">
+                <div class="checkmark" aria-hidden="true">✓</div>
+                <h2 id="confirmation-title">Order Confirmed!</h2>
+                <p>Your order #<span id="order-id-display">AC12345</span> has been placed. We'll deliver it shortly.</p>
+                <button id="continue-shopping" class="continue-button" aria-label="Continue shopping">Continue Shopping</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Favorites Modal -->
+    <div id="favorites-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="favorites-modal-title">
+        <div class="modal-overlay"></div>
+        <div class="modal-content favorites-modal">
+            <div class="modal-header">
+                <h2 id="favorites-modal-title">Your Favorites</h2>
+                <button id="close-favorites" class="close-button" aria-label="Close favorites">&times;</button>
+            </div>
+            <div id="favorites-items" class="favorites-items">
+                <p class="empty-favorites">You haven't added any favorites yet</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Orders Modal -->
+    <div id="orders-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="orders-modal-title">
+        <div class="modal-overlay"></div>
+        <div class="modal-content orders-modal">
+            <div class="modal-header">
+                <h2 id="orders-modal-title">My Orders</h2>
+                <button id="close-orders" class="close-button" aria-label="Close orders modal">&times;</button>
+            </div>
+            <div id="orders-list" class="orders-list">
+                <p class="empty-orders">You have no orders yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
