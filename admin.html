@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AfterCurfew - Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --surface: #2a2a2a;
+            --primary: #6ee7b7;
+            --text: #f0f0f0;
+            --danger: #ef4444;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        /* Login Screen */
+        #login-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 80vh;
+            text-align: center;
+        }
+        input {
+            background: var(--surface);
+            border: 1px solid #444;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            width: 300px;
+            font-size: 16px;
+        }
+        button {
+            background: var(--primary);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 16px;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Dashboard */
+        #dashboard { display: none; }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--surface);
+            padding-bottom: 20px;
+        }
+        .product-list {
+            display: grid;
+            gap: 15px;
+        }
+        .product-item {
+            background: var(--surface);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .product-img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            background: #000;
+        }
+        .product-details { flex: 1; }
+        .product-name { font-weight: 600; font-size: 18px; margin-bottom: 4px; }
+        .product-meta { color: #aaa; font-size: 14px; }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .edit-input {
+            width: 80px;
+            padding: 6px;
+            margin: 0;
+        }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-small { padding: 6px 12px; font-size: 14px; }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .status-in { background: #064e3b; color: #34d399; }
+        .status-out { background: #450a0a; color: #f87171; }
+
+        /* Add Modal */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .hidden { display: none !important; }
+        .modal-content {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 12px;
+            width: 400px;
+            max-width: 90%;
+        }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #aaa; }
+        .form-group input, .form-group select { width: 100%; box-sizing: border-box; }
+        
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: black;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transform: translateY(100px);
+            transition: transform 0.3s;
+        }
+        #toast.show { transform: translateY(0); }
+    </style>
+</head>
+<body>
+
+<div id="toast">Saved!</div>
+
+<div class="container">
+    <!-- Login Screen -->
+    <div id="login-screen">
+        <h1>🌙 AfterCurfew Admin</h1>
+        <p style="color: #aaa; margin-bottom: 30px; max-width: 400px;">
+            To manage your site, you need a GitHub Personal Access Token. 
+            This allows this page to update your code securely.
+        </p>
+        
+        <input type="text" id="gh-username" placeholder="GitHub Username (e.g., pratham)">
+        <input type="text" id="gh-repo" placeholder="Repository Name (e.g., AfterCurfew)">
+        <input type="password" id="gh-token" placeholder="Personal Access Token (ghp_...)">
+        
+        <button onclick="login()">Login to Dashboard</button>
+        <p style="font-size: 12px; margin-top: 20px; color: #666;">
+            Token needs 'repo' or 'public_repo' scope. <br>
+            <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--primary);">Generate Token Here</a>
+        </p>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard">
+        <header>
+            <h2>Product Manager</h2>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="showAddModal()" style="background: #333; color: white;">+ Add New</button>
+                <button onclick="pushChanges()" id="save-btn">💾 Publish Updates</button>
+            </div>
+        </header>
+
+        <div id="loading" style="text-align: center; padding: 40px; color: #aaa;">
+            Loading products from GitHub...
+        </div>
+
+        <div id="product-list" class="product-list">
+            <!-- Products injected here -->
+        </div>
+    </div>
+</div>
+
+<!-- Add Product Modal -->
+<div id="add-modal" class="modal hidden">
+    <div class="modal-content">
+        <h3 style="margin-top: 0;">Add Product</h3>
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" id="new-name">
+        </div>
+        <div class="form-group">
+            <label>Price (₹)</label>
+            <input type="number" id="new-price">
+        </div>
+        <div class="form-group">
+            <label>Category</label>
+            <select id="new-category">
+                <option value="snacks">Snacks</option>
+                <option value="drinks">Drinks</option>
+                <option value="chocolates">Chocolates</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Image URL (e.g., images/maggi.png)</label>
+            <input type="text" id="new-image" value="images/placeholder.png">
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="addProduct()" style="flex: 1;">Add</button>
+            <button onclick="document.getElementById('add-modal').classList.add('hidden')" style="background: #333; color: white; flex: 1;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // State
+    let products = [];
+    let fileSha = ''; // Needed for GitHub API updates
+    let appJsContent = ''; // Full content of app.js
+    let config = {
+        user: localStorage.getItem('ac_user') || '',
+        repo: localStorage.getItem('ac_repo') || '',
+        token: localStorage.getItem('ac_token') || ''
+    };
+
+    // Initialize
+    if (config.token) {
+        document.getElementById('gh-username').value = config.user;
+        document.getElementById('gh-repo').value = config.repo;
+        document.getElementById('gh-token').value = config.token;
+        // Auto-login if token exists, but let user confirm in case it's wrong
+        // login(); 
+    }
+
+    async function login() {
+        const user = document.getElementById('gh-username').value.trim();
+        const repo = document.getElementById('gh-repo').value.trim();
+        const token = document.getElementById('gh-token').value.trim();
+
+        if (!user || !repo || !token) return alert('Please fill all fields');
+
+        // Save credentials
+        localStorage.setItem('ac_user', user);
+        localStorage.setItem('ac_repo', repo);
+        localStorage.setItem('ac_token', token);
+        config = { user, repo, token };
+
+        // UI Transition
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+
+        await fetchProducts();
+    }
+
+    async function fetchProducts() {
+        const url = `https://api.github.com/repos/${config.user}/${config.repo}/contents/js/app.js`;
+        
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `token ${config.token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch. Check credentials.');
+
+            const data = await response.json();
+            fileSha = data.sha;
+            
+            // Decode content (GitHub API returns Base64)
+            appJsContent = new TextDecoder().decode(Uint8Array.from(atob(data.content), c => c.charCodeAt(0)));
+
+            // Extract products array using Regex
+            // Looks for: const products = [ ... ];
+            const match = appJsContent.match(/const products = \[([\s\S]*?)\];/);
+            
+            if (match && match[1]) {
+                // Dangerous eval? No, let's JSON parse it safely by adding brackets
+                // But the file uses JS object syntax (keys without quotes), not strict JSON.
+                // We need to be careful.
+                // Simplest way: "eval" it in a confined scope or use Function constructor.
+                // Since this is an admin panel for the owner, it's relatively safe.
+                const productString = `[${match[1]}]`;
+                products = eval(productString); // We trust our own code.
+                renderProducts();
+            } else {
+                throw new Error('Could not find "products" array in app.js');
+            }
+
+        } catch (e) {
+            alert('Error: ' + e.message);
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('dashboard').style.display = 'none';
+        }
+    }
+
+    function renderProducts() {
+        const list = document.getElementById('product-list');
+        document.getElementById('loading').style.display = 'none';
+        list.innerHTML = '';
+
+        products.forEach((p, index) => {
+            const div = document.createElement('div');
+            div.className = 'product-item';
+            div.innerHTML = `
+                <img src="${p.image}" class="product-img" onerror="this.src='https://placehold.co/60'">
+                <div class="product-details">
+                    <input class="product-name" style="background:transparent; border:none; width:100%; color:white; padding:0;" value="${p.name}" onchange="updateProduct(${index}, 'name', this.value)">
+                    <div class="product-meta">
+                        ₹ <input type="number" class="edit-input" value="${p.price}" onchange="updateProduct(${index}, 'price', this.value)">
+                        | ${p.category}
+                    </div>
+                </div>
+                <div class="actions">
+                    <div class="status-badge ${p.inStock ? 'status-in' : 'status-out'}" onclick="toggleStock(${index})">
+                        ${p.inStock ? 'In Stock' : 'Sold Out'}
+                    </div>
+                    <button class="btn-small btn-danger" onclick="deleteProduct(${index})">×</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function updateProduct(index, field, value) {
+        if (field === 'price') value = Number(value);
+        products[index][field] = value;
+        document.getElementById('save-btn').textContent = '💾 Publish Updates (Unsaved)';
+        document.getElementById('save-btn').style.background = '#eab308'; // Yellow
+    }
+
+    function toggleStock(index) {
+        products[index].inStock = !products[index].inStock;
+        renderProducts();
+        document.getElementById('save-btn').textContent = '💾 Publish Updates (Unsaved)';
+        document.getElementById('save-btn').style.background = '#eab308';
+    }
+
+    function showAddModal() {
+        document.getElementById('add-modal').classList.remove('hidden');
+    }
+
+    function addProduct() {
+        const name = document.getElementById('new-name').value;
+        const price = Number(document.getElementById('new-price').value);
+        const category = document.getElementById('new-category').value;
+        const image = document.getElementById('new-image').value;
+
+        if (!name || !price) return alert('Name and Price required');
+
+        products.push({
+            id: crypto.randomUUID(),
+            name,
+            description: 'New product',
+            category,
+            price,
+            image,
+            inStock: true
+        });
+
+        document.getElementById('add-modal').classList.add('hidden');
+        renderProducts();
+        document.getElementById('save-btn').textContent = '💾 Publish Updates (Unsaved)';
+        document.getElementById('save-btn').style.background = '#eab308';
+    }
+
+    function deleteProduct(index) {
+        if(confirm('Are you sure?')) {
+            products.splice(index, 1);
+            renderProducts();
+            document.getElementById('save-btn').textContent = '💾 Publish Updates (Unsaved)';
+            document.getElementById('save-btn').style.background = '#eab308';
+        }
+    }
+
+    async function pushChanges() {
+        const btn = document.getElementById('save-btn');
+        btn.textContent = 'Publishing...';
+        btn.disabled = true;
+
+        // 1. Convert products array back to properly formatted string
+        // We manually stringify to match the specific format of app.js (optional, but cleaner)
+        // Or just use JSON.stringify and regex replace.
+        // The original file used specific indentation. Let's try to preserve it slightly.
+        const productsJson = JSON.stringify(products, null, 2);
+        
+        // 2. Replace the array in the original file content
+        // Regex: const products = [ ... ];
+        const newFileContent = appJsContent.replace(/const products = \[([\s\S]*?)\];/, `const products = ${productsJson};`);
+
+        // 3. Encode to Base64 (UTF-8 safe)
+        const contentEncoded = btoa(unescape(encodeURIComponent(newFileContent)));
+
+        // 4. Push to GitHub
+        const url = `https://api.github.com/repos/${config.user}/${config.repo}/contents/js/app.js`;
+        
+        try {
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${config.token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: 'Update products via Admin Panel',
+                    content: contentEncoded,
+                    sha: fileSha // Required to update existing file
+                })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message);
+            }
+
+            const data = await response.json();
+            fileSha = data.content.sha; // Update SHA for next save
+
+            showToast('Live Updated Successfully!');
+            btn.textContent = '💾 Publish Updates';
+            btn.style.background = '#6ee7b7';
+            btn.disabled = false;
+
+        } catch (e) {
+            alert('Error updating: ' + e.message);
+            btn.textContent = 'Error - Try Again';
+            btn.disabled = false;
+        }
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+</script>
+
+</body>
+</html>
