@@ -42,110 +42,110 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- SITE CONFIGURATION ---
     const siteConfig = {
-        "ownerPhone": "919265807630",
-        "deliveryHours": "10 PM - 3 AM",
-        "announcement": "",
-        "deliveryFee": 10,
-        "minOrder": 0,
-        "pickupLocation": "Room 730"
-    };
+  "ownerPhone": "919265807630",
+  "deliveryHours": "10 PM - 3 AM",
+  "announcement": "",
+  "deliveryFee": 10,
+  "minOrder": 0,
+  "pickupLocation": "Room 730"
+};
 
     // --- CONFIGURATION ---
     const OWNER_PHONE_NUMBER = siteConfig.ownerPhone;
 
     // --- PRODUCT DATA ---
     const products = [
-        {
-            "id": "675c7715-1e96-486f-8bc9-77715a935a09",
-            "name": "Maggi Instant Noodles",
-            "description": "Classic Maggi, 2-minute preparation",
-            "category": "snacks",
-            "price": 20,
-            "image": "images/maggi20.png",
-            "inStock": true
-        },
-        {
-            "id": "958a101b-3893-4748-b67a-4c013cd19bc1",
-            "name": "Maggi Cup Cheesy",
-            "description": "Hot, cheesy noodles ready in a cup",
-            "category": "snacks",
-            "price": 80,
-            "image": "images/maggi_cup_cheesy_80.png",
-            "inStock": true
-        },
-        {
-            "id": "bc98cf1b-4e66-4a75-9b04-ba33dd8742c2",
-            "name": "Maggi Cup Chilli",
-            "description": "Spicy, tangy chilli flavor in convenient cup",
-            "category": "snacks",
-            "price": 60,
-            "image": "images/maggi_cup_chilli_60.png",
-            "inStock": true
-        },
-        {
-            "id": "d64a1421-b87a-4da9-83b3-f9febf5f7a5f",
-            "name": "Diet Coke 300ml",
-            "description": "Zero sugar, full flavor, caffeine boost - 300ml can",
-            "category": "drinks",
-            "price": 50,
-            "image": "images/dietcoke_300ml_45.png",
-            "inStock": true
-        },
-        {
-            "id": "438137a9-0e2b-4455-8161-ecf04b658cc8",
-            "name": "Nissin Cup Noodles Cheesy",
-            "description": "Creamy cheesy flavor in convenient cup",
-            "category": "snacks",
-            "price": 60,
-            "image": "images/nissin_cheesy_60.png",
-            "inStock": true
-        },
-        {
-            "id": "7981c4cc-15b4-4aa3-b267-b8522a598c54",
-            "name": "Nissin Cup Noodles Kimchi",
-            "description": "Spicy Korean kimchi flavor sensation",
-            "category": "snacks",
-            "price": 60,
-            "image": "images/nissin_kimchi_60.png",
-            "inStock": true
-        },
-        {
-            "id": "e12480d7-267c-4017-82fb-6305a3685798",
-            "name": "Monster Energy Drink",
-            "description": "Energy drink for that extra boost",
-            "category": "drinks",
-            "price": 100,
-            "image": "images/monster_100.png",
-            "inStock": true
-        },
-        {
-            "id": "73b4b6c6-8d6a-4da9-ab0d-83173d5a1858",
-            "name": "Maggi Cup Manchurian",
-            "description": "Tangy manchurian flavor in convenient cup",
-            "category": "snacks",
-            "price": 80,
-            "image": "images/maggi_cup_manchurian_80.png",
-            "inStock": true
-        },
-        {
-            "id": "2d03860e-49f3-4e8e-a39a-90edcdfc6acf",
-            "name": "Cup Noodles",
-            "description": "Hot and ready in 3 minutes, no bowl needed",
-            "category": "snacks",
-            "price": 60,
-            "image": "images/nissin_veg_60.png",
-            "inStock": true
-        },
-        {
-            "id": "a7c91b3d-5e84-4f2a-b81c-9d3e6f7a8b12",
-            "name": "Nissin Cup Noodles Masala",
-            "description": "Delicious masala flavor cup noodles, hot and ready",
-            "category": "snacks",
-            "price": 60,
-            "image": "images/nissin_masala_60.png",
-            "inStock": true
-        }
-    ];
+  {
+    "id": "675c7715-1e96-486f-8bc9-77715a935a09",
+    "name": "Maggi Instant Noodles",
+    "description": "Classic Maggi, 2-minute preparation",
+    "category": "snacks",
+    "price": 20,
+    "image": "images/maggi20.png",
+    "inStock": true
+  },
+  {
+    "id": "958a101b-3893-4748-b67a-4c013cd19bc1",
+    "name": "Maggi Cup Cheesy",
+    "description": "Hot, cheesy noodles ready in a cup",
+    "category": "snacks",
+    "price": 80,
+    "image": "images/maggi_cup_cheesy_80.png",
+    "inStock": false
+  },
+  {
+    "id": "bc98cf1b-4e66-4a75-9b04-ba33dd8742c2",
+    "name": "Maggi Cup Chilli",
+    "description": "Spicy, tangy chilli flavor in convenient cup",
+    "category": "snacks",
+    "price": 60,
+    "image": "images/maggi_cup_chilli_60.png",
+    "inStock": false
+  },
+  {
+    "id": "d64a1421-b87a-4da9-83b3-f9febf5f7a5f",
+    "name": "Diet Coke 300ml",
+    "description": "Zero sugar, full flavor, caffeine boost - 300ml can",
+    "category": "drinks",
+    "price": 50,
+    "image": "images/dietcoke_300ml_45.png",
+    "inStock": false
+  },
+  {
+    "id": "438137a9-0e2b-4455-8161-ecf04b658cc8",
+    "name": "Nissin Cup Noodles Cheesy",
+    "description": "Creamy cheesy flavor in convenient cup",
+    "category": "snacks",
+    "price": 60,
+    "image": "images/nissin_cheesy_60.png",
+    "inStock": false
+  },
+  {
+    "id": "7981c4cc-15b4-4aa3-b267-b8522a598c54",
+    "name": "Nissin Cup Noodles Kimchi",
+    "description": "Spicy Korean kimchi flavor sensation",
+    "category": "snacks",
+    "price": 60,
+    "image": "images/nissin_kimchi_60.png",
+    "inStock": false
+  },
+  {
+    "id": "e12480d7-267c-4017-82fb-6305a3685798",
+    "name": "Monster Energy Drink",
+    "description": "Energy drink for that extra boost",
+    "category": "drinks",
+    "price": 100,
+    "image": "images/monster_100.png",
+    "inStock": false
+  },
+  {
+    "id": "73b4b6c6-8d6a-4da9-ab0d-83173d5a1858",
+    "name": "Maggi Cup Manchurian",
+    "description": "Tangy manchurian flavor in convenient cup",
+    "category": "snacks",
+    "price": 80,
+    "image": "images/maggi_cup_manchurian_80.png",
+    "inStock": false
+  },
+  {
+    "id": "a7c91b3d-5e84-4f2a-b81c-9d3e6f7a8b12",
+    "name": "Nissin Korean Noodles Spicy",
+    "description": "Delicious Korean flavor noodles, hot and spicy!",
+    "category": "snacks",
+    "price": 60,
+    "image": "images/nissin_masala_60.png",
+    "inStock": true
+  },
+  {
+    "id": "39e191f9-0fd4-4d6e-ba3f-34335e373919",
+    "name": "Manchow Cup Noodles",
+    "description": "Hot and ready in 5 minutes!",
+    "category": "snacks",
+    "price": 60,
+    "image": "images/wickedgood_manchow_60.png",
+    "inStock": true
+  }
+];
 
     // State
     let cart = [];
