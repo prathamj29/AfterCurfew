@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AfterCurfew - Late Night Delivery</title>
+    <meta name="description" content="Order late night snacks and drinks for delivery">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a1a">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <!-- Enhanced Header with Navigation -->
+    <header class="app-header">
+        <div class="header-main">
+            <button class="nav-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <h1 class="app-title logo-container" id="logo">
+                <span class="logo-text">AfterCurfew</span>
+                <span class="logo-icon">🌙</span>
+            </h1>
+            <!-- Removed Account Button -->
+        </div>
+
+        <!-- Side Navigation -->
+        <nav class="side-nav" id="side-nav" aria-label="Main navigation" hidden>
+            <div class="nav-header">
+                <h2 class="nav-title">Menu</h2>
+                <button class="nav-close" id="nav-close" aria-label="Close menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <ul class="nav-list">
+                <li><a href="#" class="nav-link active" data-page="home" aria-label="Home page">Home</a></li>
+                <li><a href="#" class="nav-link" data-page="orders" aria-label="My Orders">My Orders</a></li>
+                <!-- Can now view without login -->
+                <li><a href="#" class="nav-link" data-page="favorites" aria-label="Favorites">Favorites</a></li>
+                <!-- Removed Account Link -->
+                <li><a href="#" class="nav-link" data-page="help" aria-label="Help & Support">Help & Support</a></li>
+            </ul>
+            <!-- New Theme Selector Section in Side Nav -->
+            <div class="nav-theme-section">
+                <h3 class="nav-theme-title">Theme</h3>
+                <div class="nav-theme-selector">
+                    <label class="nav-theme-option">
+                        <input type="radio" name="nav-theme" value="dark" id="nav-theme-dark" checked>
+                        <span class="nav-theme-label">Dark Theme</span>
+                    </label>
+                    <label class="nav-theme-option">
+                        <input type="radio" name="nav-theme" value="colorful" id="nav-theme-colorful">
+                        <span class="nav-theme-label">Colorful Theme</span>
+                    </label>
+                    <label class="nav-theme-option">
+                        <input type="radio" name="nav-theme" value="avengers" id="nav-theme-avengers">
+                        <span class="nav-theme-label">Avengers Theme</span>
+                    </label>
+                    <label class="nav-theme-option">
+                        <input type="radio" name="nav-theme" value="barbie" id="nav-theme-barbie">
+                        <span class="nav-theme-label">Barbie Theme</span>
+                    </label>
+                </div>
+            </div>
+            <!-- End Theme Selector Section -->
+            <div class="nav-footer">
+                <!-- Removed Logout Button -->
+            </div>
+        </nav>
+
+        <!-- Overlay for side navigation -->
+        <div class="nav-overlay" id="nav-overlay" aria-hidden="true" hidden></div>
+    </header>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+        <div class="search-bar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                aria-hidden="true">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="search" id="search-input" placeholder="Search products..." aria-label="Search products">
+        </div>
+    </div>
+
+    <!-- Category Pills -->
+    <div class="category-container" role="tablist" aria-label="Product categories">
+        <button class="category-pill active" role="tab" data-category="all" aria-selected="true"
+            aria-controls="all-products">All Items</button>
+        <button class="category-pill" role="tab" data-category="snacks" aria-selected="false"
+            aria-controls="snacks-products">Snacks</button>
+        <button class="category-pill" role="tab" data-category="drinks" aria-selected="false"
+            aria-controls="drinks-products">Drinks</button>
+    </div>
+
+    <!-- Product Grid - Rendered dynamically by app.js -->
+    <main class="main-content">
+        <div class="product-grid" id="product-grid" role="tabpanel"></div>
+    </main>
+
+    <!-- Cart Bar -->
+    <div id="cart-bar" class="cart-bar hidden" aria-label="Shopping cart">
+        <div class="cart-info">
+            <span class="cart-label">Cart</span>
+            <span id="cart-total" class="cart-total">₹0</span>
+        </div>
+        <button id="view-cart" class="view-cart-button" aria-label="View shopping cart">View Cart</button>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title">
+        <div class="modal-overlay"></div>
+        <div class="modal-content cart-modal">
+            <div class="modal-header">
+                <h2 id="cart-modal-title">Your Cart</h2>
+                <button id="close-cart" class="close-button" aria-label="Close cart">&times;</button>
+            </div>
+            <div id="cart-items" class="cart-items">
+                <p class="empty-cart">Your cart is empty</p>
+            </div>
+            <div class="cart-footer">
+                <div class="total-row">
+                    <span>Total:</span>
+                    <span id="modal-total">₹0</span>
+                </div>
+                <button id="checkout-button" class="checkout-button" aria-label="Proceed to checkout">Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkout-modal" class="modal hidden" role="dialog" aria-modal="true"
+        aria-labelledby="checkout-modal-title">
+        <div class="modal-overlay"></div>
+        <div class="modal-content checkout-modal">
+            <div class="modal-header">
+                <h2 id="checkout-modal-title">Checkout</h2>
+                <button id="close-checkout" class="close-button" aria-label="Close checkout form">&times;</button>
+            </div>
+            <form id="checkout-form" class="checkout-form" novalidate>
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" required placeholder="Your name"
+                        aria-describedby="name-error">
+                    <div id="name-error" class="error-message" role="alert" aria-live="polite"></div>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" required placeholder="+91 98765 43210"
+                        aria-describedby="phone-error">
+                    <div id="phone-error" class="error-message" role="alert" aria-live="polite"></div>
+                </div>
+
+                <!-- Delivery Option -->
+                <div class="form-group">
+                    <label>How would you like to get your order?</label>
+                    <div class="delivery-options" id="delivery-options">
+                        <label class="delivery-option">
+                            <input type="radio" name="delivery-type" value="pickup" id="delivery-pickup" checked>
+                            <div class="delivery-option-card">
+                                <span class="delivery-option-icon">🏃</span>
+                                <div class="delivery-option-info">
+                                    <span class="delivery-option-title">Pickup from Room 730</span>
+                                    <span class="delivery-option-desc">Free — come collect your order</span>
+                                </div>
+                            </div>
+                        </label>
+                        <label class="delivery-option">
+                            <input type="radio" name="delivery-type" value="delivery" id="delivery-room">
+                            <div class="delivery-option-card">
+                                <span class="delivery-option-icon">🚪</span>
+                                <div class="delivery-option-info">
+                                    <span class="delivery-option-title">Deliver to my room</span>
+                                    <span class="delivery-option-desc">+₹10 delivery charge</span>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Room details (only for delivery) -->
+                <div id="delivery-details" style="display:none;">
+                    <div class="form-group">
+                        <label for="floor">Floor Number</label>
+                        <input type="text" id="floor" name="floor" placeholder="e.g., 3rd floor"
+                            aria-describedby="floor-error">
+                        <div id="floor-error" class="error-message" role="alert" aria-live="polite"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="room">Room Number</label>
+                        <input type="text" id="room" name="room" placeholder="e.g., Room 305"
+                            aria-describedby="room-error">
+                        <div id="room-error" class="error-message" role="alert" aria-live="polite"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="instructions">Special Instructions (Optional)</label>
+                    <textarea id="instructions" name="instructions" placeholder="Any special requests..."></textarea>
+                </div>
+                <div class="form-footer">
+                    <div id="order-summary" class="order-summary"></div>
+                    <button type="submit" class="submit-button">Place Order — <span
+                            id="checkout-total">₹0</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="modal hidden" role="dialog" aria-modal="true"
+        aria-labelledby="confirmation-title">
+        <div class="modal-overlay"></div>
+        <div class="modal-content confirmation-modal">
+            <div class="confirmation-content">
+                <div class="checkmark" aria-hidden="true">✓</div>
+                <h2 id="confirmation-title">Order Confirmed!</h2>
+                <p>Your order #<span id="order-id-display">AC12345</span> has been placed. We'll deliver it shortly.
+                </p>
+                <button id="continue-shopping" class="continue-button" aria-label="Continue shopping">Continue
+                    Shopping</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Favorites Modal -->
+    <div id="favorites-modal" class="modal hidden" role="dialog" aria-modal="true"
+        aria-labelledby="favorites-modal-title">
+        <div class="modal-overlay"></div>
+        <div class="modal-content favorites-modal">
+            <div class="modal-header">
+                <h2 id="favorites-modal-title">Your Favorites</h2>
+                <button id="close-favorites" class="close-button" aria-label="Close favorites">&times;</button>
+            </div>
+            <div id="favorites-items" class="favorites-items">
+                <p class="empty-favorites">You haven't added any favorites yet</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Orders Modal -->
+    <div id="orders-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="orders-modal-title">
+        <div class="modal-overlay"></div>
+        <div class="modal-content orders-modal">
+            <div class="modal-header">
+                <h2 id="orders-modal-title">My Orders</h2>
+                <button id="close-orders" class="close-button" aria-label="Close orders modal">&times;</button>
+            </div>
+            <div id="orders-list" class="orders-list">
+                <p class="empty-orders">You have no orders yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>
