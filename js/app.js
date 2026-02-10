@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "snacks",
     "price": 60,
     "image": "images/nissin_masala_60.png",
-    "inStock": true
+    "inStock": false
   },
   {
     "id": "39e191f9-0fd4-4d6e-ba3f-34335e373919",
@@ -143,6 +143,33 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "snacks",
     "price": 60,
     "image": "images/wickedgood_manchow_60.png",
+    "inStock": true
+  },
+  {
+    "id": "93e03624-5935-4c73-952b-abed7c8feca2",
+    "name": "Masala Cup Noodles",
+    "description": "Classic Masala Cup Noodles, ready in 5 minutes!",
+    "category": "snacks",
+    "price": 60,
+    "image": "images/1770720182866-122.jpg",
+    "inStock": true
+  },
+  {
+    "id": "c217e1ee-284e-4e20-90da-963986fb456d",
+    "name": "Korean Spicy Veg Cup Noodles Veg",
+    "description": "Hot and ready in 5 minutes!",
+    "category": "snacks",
+    "price": 85,
+    "image": "images/1770720280724-259.jpg",
+    "inStock": true
+  },
+  {
+    "id": "336395ab-7aa7-4fe7-a632-d1014c936d9b",
+    "name": "Wai Wai Cup Noodles",
+    "description": "Hot and ready in 3 minutes, no bowl needed!",
+    "category": "snacks",
+    "price": 60,
+    "image": "images/1770720345872-183.jpg",
     "inStock": true
   }
 ];
