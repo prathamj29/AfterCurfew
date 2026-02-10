@@ -43,9 +43,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- SITE CONFIGURATION ---
     const siteConfig = {
   "ownerPhone": "919265807630",
-  "deliveryHours": "10 PM - 3 AM",
-  "announcement": "",
-  "deliveryFee": 10,
+  "deliveryHours": "12 PM - 3 AM",
+  "announcement": "Free delivery above Rs. 200!",
+  "deliveryFee": 20,
   "minOrder": 0,
   "pickupLocation": "Room 730"
 };
