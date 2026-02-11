@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "description": "Cup Noodles Mazedar Masala",
     "category": "snacks",
     "price": 60,
-    "image": "images/1770720182866-122.jpg",
+    "image": "images/1770812433536-138.png",
     "inStock": true
   },
   {
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "description": "Hot and Spicy... Ready in 5 minutes!",
     "category": "snacks",
     "price": 85,
-    "image": "images/1770811938245-772.jpg",
+    "image": "images/1770812391306-989.png",
     "inStock": true
   },
   {
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "description": "Hot and ready in 5 minutes, no bowl needed!",
     "category": "snacks",
     "price": 60,
-    "image": "images/1770720345872-183.jpg",
+    "image": "images/1770812350560-333.png",
     "inStock": true
   }
 ];
