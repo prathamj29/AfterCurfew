@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "name": "Manchow Cup Noodles",
     "description": "WIcked Good! Hot and ready in 5 minutes!",
     "category": "snacks",
-    "price": 60,
+    "price": 65,
     "image": "images/wickedgood_manchow_60.png",
     "inStock": true
   },
@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "name": "Masala Cup Noodles",
     "description": "Cup Noodles Mazedar Masala",
     "category": "snacks",
-    "price": 60,
+    "price": 65,
     "image": "images/1770812433536-138.png",
     "inStock": true
   },
@@ -168,8 +168,17 @@ document.addEventListener('DOMContentLoaded', function () {
     "name": "Wai Wai Cup Noodles",
     "description": "Hot and ready in 5 minutes, no bowl needed!",
     "category": "snacks",
-    "price": 60,
+    "price": 65,
     "image": "images/1770812350560-333.png",
+    "inStock": true
+  },
+  {
+    "id": "9098cf10-617a-4911-8140-c265c94f39f5",
+    "name": "Maggi Masala Cuppa",
+    "description": "Classic Maggi Masala Cup Noodles, ready in 5 minutes!",
+    "category": "snacks",
+    "price": 65,
+    "image": "images/1770812576209-552.png",
     "inStock": true
   }
 ];
