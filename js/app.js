@@ -208,7 +208,13 @@ document.addEventListener('DOMContentLoaded', function () {
         productGrid.innerHTML = '';
         let visibleIndex = 0;
 
-        products.forEach(product => {
+        // Sort: in-stock items first, then out-of-stock
+        const sortedProducts = [...products].sort((a, b) => {
+            if (a.inStock === b.inStock) return 0;
+            return a.inStock ? -1 : 1;
+        });
+
+        sortedProducts.forEach(product => {
             const matchesCat = currentCategory === 'all' || product.category === currentCategory;
             const matchesSearch = product.name.toLowerCase().includes(currentSearch);
             if (!matchesCat || !matchesSearch) return;

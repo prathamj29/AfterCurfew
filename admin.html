@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AfterCurfew - Admin Panel</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         *,
@@ -733,6 +734,139 @@
             font-size: 13px;
         }
 
+        /* Background Removal Styles */
+        .bg-removal-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin-top: 8px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .bg-removal-toggle:hover {
+            border-color: var(--accent);
+            background: var(--card-hover);
+        }
+
+        .bg-removal-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .bg-removal-toggle .toggle-info {
+            flex: 1;
+        }
+
+        .bg-removal-toggle .toggle-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            display: block;
+        }
+
+        .bg-removal-toggle .toggle-desc {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 2px;
+            display: block;
+        }
+
+        .bg-removal-toggle .toggle-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 99px;
+            background: linear-gradient(135deg, #6ee7b7, #34d399);
+            color: #000;
+            flex-shrink: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .bg-processing-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 10, 0.92);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: var(--radius-sm);
+            gap: 12px;
+        }
+
+        .bg-processing-overlay .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .bg-processing-overlay .proc-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .bg-processing-overlay .proc-text strong {
+            color: var(--accent);
+            display: block;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .img-preview-area {
+            position: relative;
+        }
+
+        .bg-comparison {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .bg-comparison .compare-box {
+            flex: 1;
+            text-align: center;
+        }
+
+        .bg-comparison .compare-box img {
+            width: 100%;
+            max-height: 80px;
+            object-fit: contain;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: repeating-conic-gradient(#1a1a1a 0% 25%, #252525 0% 50%) 0 0 / 12px 12px;
+        }
+
+        .bg-comparison .compare-label {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         /* ===== TOAST ===== */
         #toast {
             position: fixed;
@@ -1011,7 +1145,16 @@
                     <span>Click to upload image</span>
                 </div>
                 <input type="file" id="m-image-file" accept="image/*" style="display:none"
-                    onchange="previewImage(this)">
+                    onchange="handleImageUpload(this)">
+                <label class="bg-removal-toggle">
+                    <input type="checkbox" id="bg-remove-toggle" checked>
+                    <div class="toggle-info">
+                        <span class="toggle-label">✨ Remove Background</span>
+                        <span class="toggle-desc">Auto-remove image background using AI (runs in browser)</span>
+                    </div>
+                    <span class="toggle-badge">AI</span>
+                </label>
+                <div id="bg-comparison" class="bg-comparison" style="display:none;"></div>
                 <input type="text" id="m-image-url" placeholder="Or paste image path: images/maggi20.png"
                     style="margin-top:8px">
             </div>
@@ -1022,9 +1165,13 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        // ===== BACKGROUND REMOVAL LIBRARY =====
+        import imglyRemoveBackground from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm';
+
         // ===== STATE =====
         let products = [];
+        let processedImageBlob = null; // Stores the bg-removed image blob
         let siteConfig = {};
         let fileSha = '';
         let appJsContent = '';
@@ -1203,6 +1350,7 @@
 
         function showAddModal() {
             editingIndex = -1;
+            processedImageBlob = null;
             document.getElementById('modal-title').textContent = 'Add Product';
             document.getElementById('modal-save-btn').textContent = 'Add Product';
             document.getElementById('m-name').value = '';
@@ -1212,11 +1360,14 @@
             document.getElementById('m-image-url').value = '';
             document.getElementById('m-image-file').value = '';
             document.getElementById('img-preview').innerHTML = '<span>Click to upload image</span>';
+            document.getElementById('bg-comparison').style.display = 'none';
+            document.getElementById('bg-remove-toggle').checked = true;
             document.getElementById('product-modal').classList.remove('hidden');
         }
 
         function openEdit(index) {
             editingIndex = index;
+            processedImageBlob = null;
             const p = products[index];
             document.getElementById('modal-title').textContent = 'Edit Product';
             document.getElementById('modal-save-btn').textContent = 'Save Changes';
@@ -1227,6 +1378,8 @@
             document.getElementById('m-image-url').value = p.image;
             document.getElementById('m-image-file').value = '';
             document.getElementById('img-preview').innerHTML = `<img src="${p.image}" alt="Preview">`;
+            document.getElementById('bg-comparison').style.display = 'none';
+            document.getElementById('bg-remove-toggle').checked = true;
             document.getElementById('product-modal').classList.remove('hidden');
         }
 
@@ -1234,15 +1387,69 @@
             document.getElementById('product-modal').classList.add('hidden');
         }
 
-        function previewImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    document.getElementById('img-preview').innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
+        // Handle image upload with optional background removal
+        async function handleImageUpload(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            processedImageBlob = null;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const originalSrc = e.target.result;
+                const preview = document.getElementById('img-preview');
+                const comparison = document.getElementById('bg-comparison');
+                const shouldRemoveBg = document.getElementById('bg-remove-toggle').checked;
+
+                preview.innerHTML = `<img src="${originalSrc}" alt="Preview">`;
+                comparison.style.display = 'none';
+
+                if (shouldRemoveBg) {
+                    // Show processing overlay
+                    preview.innerHTML = `
+                        <img src="${originalSrc}" alt="Preview" style="opacity:0.3">
+                        <div class="bg-processing-overlay">
+                            <div class="spinner"></div>
+                            <div class="proc-text">
+                                <strong>Removing Background...</strong>
+                                AI processing in your browser
+                            </div>
+                        </div>`;
+
+                    try {
+                        const blob = await imglyRemoveBackground(originalSrc, {
+                            output: { format: 'image/png' }
+                        });
+                        processedImageBlob = blob;
+                        const processedUrl = URL.createObjectURL(blob);
+
+                        preview.innerHTML = `<img src="${processedUrl}" alt="Preview (BG Removed)">`;
+
+                        // Show comparison
+                        comparison.style.display = 'flex';
+                        comparison.innerHTML = `
+                            <div class="compare-box">
+                                <img src="${originalSrc}" alt="Original">
+                                <div class="compare-label">Original</div>
+                            </div>
+                            <div class="compare-box">
+                                <img src="${processedUrl}" alt="Processed">
+                                <div class="compare-label">BG Removed ✨</div>
+                            </div>`;
+
+                        showToast('✨ Background removed successfully!');
+                    } catch (err) {
+                        console.error('Background removal failed:', err);
+                        preview.innerHTML = `<img src="${originalSrc}" alt="Preview">`;
+                        processedImageBlob = null;
+                        showToast('Background removal failed, using original image', true);
+                    }
+                }
+            };
+            reader.readAsDataURL(file);
         }
+
+        // Legacy alias
+        function previewImage(input) { handleImageUpload(input); }
 
         async function saveProduct() {
             const name = document.getElementById('m-name').value.trim();
@@ -1290,13 +1497,21 @@
         }
 
         async function uploadImageToGitHub(file) {
+            let uploadBlob = file;
+            let ext = file.name.split('.').pop();
+
+            // If background was removed, use the processed blob instead
+            if (processedImageBlob && document.getElementById('bg-remove-toggle').checked) {
+                uploadBlob = processedImageBlob;
+                ext = 'png'; // bg-removed images are always PNG
+            }
+
             const content = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(reader.result.split(',')[1]);
                 reader.onerror = reject;
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(uploadBlob);
             });
-            const ext = file.name.split('.').pop();
             const filename = `images/${Date.now()}-${Math.floor(Math.random() * 1000)}.${ext}`;
             const url = `https://api.github.com/repos/${config.user}/${config.repo}/contents/${filename}`;
             const res = await fetch(url, {
@@ -1305,6 +1520,7 @@
                 body: JSON.stringify({ message: `Upload ${file.name} via Admin`, content })
             });
             if (!res.ok) throw new Error('Failed to upload image');
+            processedImageBlob = null; // Reset after upload
             return filename;
         }
 
@@ -1379,6 +1595,25 @@
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', () => switchTab(btn.dataset.tab));
         });
+
+        // Expose functions to global scope for onclick handlers (required with type="module")
+        window.login = login;
+        window.logout = logout;
+        window.showAddModal = showAddModal;
+        window.openEdit = openEdit;
+        window.closeModal = closeModal;
+        window.saveProduct = saveProduct;
+        window.deleteProduct = deleteProduct;
+        window.toggleStock = toggleStock;
+        window.toggleAllStock = toggleAllStock;
+        window.toggleSidebar = toggleSidebar;
+        window.closeSidebar = closeSidebar;
+        window.handleImageUpload = handleImageUpload;
+        window.previewImage = previewImage;
+        window.switchTab = switchTab;
+        window.pushChanges = pushChanges;
+        window.onSettingChange = onSettingChange;
+        window.renderProductList = renderProductList;
 
         function switchTab(tab) {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
