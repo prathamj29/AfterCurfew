@@ -180,6 +180,15 @@ document.addEventListener('DOMContentLoaded', function () {
     "price": 65,
     "image": "images/1770812576209-552.png",
     "inStock": true
+  },
+  {
+    "id": "32890222-281b-4a34-85b5-cbd3f2d3b522",
+    "name": "KChow Korean Ramen",
+    "description": "Hot and ready in 5 minutes!",
+    "category": "snacks",
+    "price": 75,
+    "image": "images/1770813096864-508.png",
+    "inStock": true
   }
 ];
 
