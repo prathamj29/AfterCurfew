@@ -93,30 +93,30 @@ document.addEventListener('DOMContentLoaded', function () {
   },
   {
     "id": "438137a9-0e2b-4455-8161-ecf04b658cc8",
-    "name": "Nissin Cup Noodles Cheesy",
+    "name": "Nissin Geki Spicy Cheesy Noodles",
     "description": "Creamy cheesy flavor in convenient cup",
     "category": "snacks",
     "price": 60,
     "image": "images/nissin_cheesy_60.png",
-    "inStock": false
+    "inStock": true
   },
   {
     "id": "7981c4cc-15b4-4aa3-b267-b8522a598c54",
-    "name": "Nissin Cup Noodles Kimchi",
+    "name": "Nissin Geki Spicy Kimchi Noodles",
     "description": "Spicy Korean kimchi flavor sensation",
     "category": "snacks",
     "price": 60,
     "image": "images/nissin_kimchi_60.png",
-    "inStock": false
+    "inStock": true
   },
   {
     "id": "e12480d7-267c-4017-82fb-6305a3685798",
     "name": "Monster Energy Drink",
     "description": "Energy drink for that extra boost",
     "category": "drinks",
-    "price": 100,
+    "price": 125,
     "image": "images/monster_100.png",
-    "inStock": false
+    "inStock": true
   },
   {
     "id": "73b4b6c6-8d6a-4da9-ab0d-83173d5a1858",
@@ -129,12 +129,12 @@ document.addEventListener('DOMContentLoaded', function () {
   },
   {
     "id": "a7c91b3d-5e84-4f2a-b81c-9d3e6f7a8b12",
-    "name": "Nissin Korean Noodles Spicy",
+    "name": "Nissin Geki Spicy Veg Noodles",
     "description": "Delicious Korean flavor noodles, hot and spicy!",
     "category": "snacks",
     "price": 60,
     "image": "images/nissin_masala_60.png",
-    "inStock": false
+    "inStock": true
   },
   {
     "id": "39e191f9-0fd4-4d6e-ba3f-34335e373919",
