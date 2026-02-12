@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "name": "Monster Energy Drink",
     "description": "Energy drink for that extra boost",
     "category": "drinks",
-    "price": 125,
+    "price": 110,
     "image": "images/monster_100.png",
     "inStock": true
   },
