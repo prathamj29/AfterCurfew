@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "snacks",
     "price": 65,
     "image": "images/1770812576209-552.png",
-    "inStock": true
+    "inStock": false
   },
   {
     "id": "32890222-281b-4a34-85b5-cbd3f2d3b522",
