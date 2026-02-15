@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "snacks",
     "price": 60,
     "image": "images/nissin_cheesy_60.png",
-    "inStock": true
+    "inStock": false
   },
   {
     "id": "7981c4cc-15b4-4aa3-b267-b8522a598c54",
