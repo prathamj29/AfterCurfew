@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "snacks",
     "price": 65,
     "image": "images/wickedgood_manchow_60.png",
-    "inStock": true
+    "inStock": false
   },
   {
     "id": "93e03624-5935-4c73-952b-abed7c8feca2",
