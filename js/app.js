@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "snacks",
     "price": 20,
     "image": "images/maggi20.png",
-    "inStock": true
+    "inStock": false
   },
   {
     "id": "958a101b-3893-4748-b67a-4c013cd19bc1",
