@@ -189,6 +189,15 @@ document.addEventListener('DOMContentLoaded', function () {
     "price": 75,
     "image": "images/1770813096864-508.png",
     "inStock": false
+  },
+  {
+    "id": "b6c73cd9-f918-488a-8809-bb2769cc7fe6",
+    "name": "Nissin Geki Carbonara Creamy Veg",
+    "description": "Hot and ready in 5 minutes!",
+    "category": "snacks",
+    "price": 99,
+    "image": "images/1772126865445-484.png",
+    "inStock": true
   }
 ];
 
