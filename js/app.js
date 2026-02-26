@@ -198,6 +198,15 @@ document.addEventListener('DOMContentLoaded', function () {
     "price": 99,
     "image": "images/1772126865445-484.png",
     "inStock": true
+  },
+  {
+    "id": "c00b0988-8aac-4b56-a12e-4e7babc41c37",
+    "name": "Monster Pipeline Punch",
+    "description": "Exotic!",
+    "category": "drinks",
+    "price": 150,
+    "image": "images/1772127026454-488.png",
+    "inStock": true
   }
 ];
 
