@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "drinks",
     "price": 110,
     "image": "images/monster_100.png",
-    "inStock": true
+    "inStock": false
   },
   {
     "id": "73b4b6c6-8d6a-4da9-ab0d-83173d5a1858",
