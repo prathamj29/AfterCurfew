@@ -193,9 +193,9 @@ document.addEventListener('DOMContentLoaded', function () {
   {
     "id": "b6c73cd9-f918-488a-8809-bb2769cc7fe6",
     "name": "Nissin Geki Carbonara Creamy Veg",
-    "description": "Hot and ready in 5 minutes!",
+    "description": "Fiery Korean-style noodles in rich & creamy carbonara sauce.",
     "category": "snacks",
-    "price": 99,
+    "price": 89,
     "image": "images/1772126865445-484.png",
     "inStock": false
   },
