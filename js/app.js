@@ -207,6 +207,24 @@ document.addEventListener('DOMContentLoaded', function () {
     "price": 150,
     "image": "images/1772127026454-488.png",
     "inStock": true
+  },
+  {
+    "id": "4cfba65e-e61c-477f-a45c-9cf05b3c7f53",
+    "name": "Bikaji Chowpati BhelPuri",
+    "description": "Perfect for THAT craving.",
+    "category": "snacks",
+    "price": 50,
+    "image": "images/1772474598513-36.png",
+    "inStock": true
+  },
+  {
+    "id": "83d9f702-19f9-47f5-9a0b-560cfd3ab899",
+    "name": "Knorr K-Pot Spicy Jjajangmyeon Veg Meal Korean Ramen",
+    "description": "Delicious Korean flavor noodles, hot and spicy!",
+    "category": "snacks",
+    "price": 65,
+    "image": "images/1772474686695-933.png",
+    "inStock": true
   }
 ];
 
