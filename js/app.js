@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "snacks",
     "price": 60,
     "image": "images/nissin_masala_60.png",
-    "inStock": true
+    "inStock": false
   },
   {
     "id": "39e191f9-0fd4-4d6e-ba3f-34335e373919",
