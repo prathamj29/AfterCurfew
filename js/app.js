@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "drinks",
     "price": 50,
     "image": "images/dietcoke_300ml_45.png",
-    "inStock": false
+    "inStock": true
   },
   {
     "id": "438137a9-0e2b-4455-8161-ecf04b658cc8",
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "snacks",
     "price": 60,
     "image": "images/nissin_cheesy_60.png",
-    "inStock": false
+    "inStock": true
   },
   {
     "id": "7981c4cc-15b4-4aa3-b267-b8522a598c54",
