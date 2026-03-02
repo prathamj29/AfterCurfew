@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "snacks",
     "price": 65,
     "image": "images/1772474686695-933.png",
-    "inStock": true
+    "inStock": false
   }
 ];
 
