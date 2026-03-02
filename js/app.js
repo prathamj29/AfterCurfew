@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "drinks",
     "price": 110,
     "image": "images/monster_100.png",
-    "inStock": false
+    "inStock": true
   },
   {
     "id": "73b4b6c6-8d6a-4da9-ab0d-83173d5a1858",
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "snacks",
     "price": 65,
     "image": "images/wickedgood_manchow_60.png",
-    "inStock": false
+    "inStock": true
   },
   {
     "id": "93e03624-5935-4c73-952b-abed7c8feca2",
