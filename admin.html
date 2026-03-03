@@ -3,9 +3,19 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>AfterCurfew - Admin Panel</title>
+
+    <!-- Mobile & PWA Optimizations -->
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AC Admin">
+
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="apple-touch-icon" href="favicon.svg">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         *,
@@ -956,6 +966,423 @@
         .mobile-overlay.show {
             display: block;
         }
+
+        /* ===== COMPREHENSIVE MOBILE OPTIMIZATION ===== */
+
+        /* Safe area support */
+        body {
+            padding-top: env(safe-area-inset-top);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+        }
+
+        /* Prevent overflow */
+        html,
+        body {
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        /* Remove tap highlight */
+        a,
+        button,
+        input,
+        select,
+        textarea,
+        label {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-area {
+                margin-left: 0;
+            }
+
+            .topbar {
+                padding: 12px 14px;
+                gap: 8px;
+            }
+
+            .topbar h2 {
+                font-size: 16px;
+            }
+
+            .topbar-actions {
+                gap: 8px;
+            }
+
+            .status-badge {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+
+            .btn-publish {
+                padding: 8px 14px;
+                font-size: 12px;
+            }
+
+            .content-area {
+                padding: 14px;
+            }
+
+            /* Stats cards */
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+
+            .stat-card {
+                padding: 14px;
+            }
+
+            .stat-card .stat-icon {
+                font-size: 22px;
+                margin-bottom: 8px;
+            }
+
+            .stat-card .stat-value {
+                font-size: 24px;
+            }
+
+            .stat-card .stat-label {
+                font-size: 12px;
+            }
+
+            /* Quick actions */
+            .settings-section {
+                padding: 16px;
+            }
+
+            .settings-section h3 {
+                font-size: 15px;
+            }
+
+            /* Product rows */
+            .product-row {
+                flex-wrap: wrap;
+                padding: 12px;
+                gap: 10px;
+            }
+
+            .product-row .p-img {
+                width: 48px;
+                height: 48px;
+            }
+
+            .product-row .p-name {
+                font-size: 14px;
+            }
+
+            .product-row .p-meta {
+                font-size: 12px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .product-row .p-actions {
+                width: 100%;
+                justify-content: flex-end;
+                margin-top: 4px;
+                padding-top: 10px;
+                border-top: 1px solid var(--border);
+            }
+
+            /* Settings inputs */
+            .setting-input {
+                max-width: 100%;
+                font-size: 15px;
+            }
+
+            /* Products toolbar */
+            .products-toolbar {
+                gap: 8px;
+            }
+
+            .products-toolbar .search-input {
+                min-width: 0;
+                flex: 1 1 100%;
+            }
+
+            .btn-add {
+                font-size: 13px;
+                padding: 10px 14px;
+            }
+
+            .mobile-toggle {
+                display: flex !important;
+                background: var(--card);
+                width: 40px;
+                height: 40px;
+                align-items: center;
+                justify-content: center;
+                border-radius: var(--radius-sm);
+                font-size: 20px;
+                color: var(--text);
+                flex-shrink: 0;
+            }
+
+            /* Modal optimization */
+            .modal-box {
+                padding: 20px;
+                max-width: calc(100vw - 32px);
+                max-height: 85vh;
+                overflow-y: auto;
+                margin: 16px;
+            }
+
+            .modal-box h3 {
+                font-size: 17px;
+            }
+
+            .modal-box input,
+            .modal-box select,
+            .modal-box textarea {
+                font-size: 15px;
+                padding: 12px 14px;
+            }
+
+            .modal-box .form-group {
+                margin-bottom: 14px;
+            }
+
+            .img-preview-area {
+                height: 100px;
+            }
+
+            .bg-removal-toggle {
+                padding: 10px 12px;
+            }
+
+            .bg-removal-toggle .toggle-label {
+                font-size: 12px;
+            }
+
+            .bg-removal-toggle .toggle-desc {
+                font-size: 10px;
+            }
+
+            .modal-box .btn-row {
+                margin-top: 18px;
+            }
+
+            .modal-box .btn-row button {
+                padding: 14px;
+                font-size: 14px;
+            }
+
+            /* Order table → card layout on mobile */
+            #orders-table-area table {
+                display: block;
+            }
+
+            #orders-table-area thead {
+                display: none;
+            }
+
+            #orders-table-area tbody {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            #orders-table-area tr {
+                display: flex;
+                flex-wrap: wrap;
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 14px;
+                gap: 4px 12px;
+            }
+
+            #orders-table-area td {
+                padding: 2px 0 !important;
+                border: none !important;
+                white-space: normal !important;
+            }
+
+            #orders-table-area td:nth-child(1) {
+                /* Time */
+                width: 100%;
+                font-size: 11px;
+                order: -2;
+            }
+
+            #orders-table-area td:nth-child(2) {
+                /* Order ID */
+                font-size: 14px;
+                order: -1;
+                width: 100%;
+                margin-bottom: 4px;
+            }
+
+            #orders-table-area td:nth-child(3) {
+                /* Customer */
+                flex: 1;
+            }
+
+            #orders-table-area td:nth-child(4) {
+                /* Phone */
+                flex: 1;
+            }
+
+            #orders-table-area td:nth-child(5) {
+                /* Delivery */
+                flex-shrink: 0;
+            }
+
+            #orders-table-area td:nth-child(6) {
+                /* Items */
+                width: 100%;
+                max-width: none !important;
+                margin-top: 4px;
+                padding-top: 8px !important;
+                border-top: 1px solid var(--border) !important;
+            }
+
+            #orders-table-area td:nth-child(7) {
+                /* Total */
+                width: 100%;
+                text-align: left !important;
+                font-size: 16px;
+                margin-top: 4px;
+            }
+
+            /* Toast positioning */
+            #toast {
+                bottom: 16px;
+                right: 16px;
+                left: 16px;
+                text-align: center;
+                font-size: 13px;
+                padding: 10px 16px;
+            }
+        }
+
+        /* Small phones */
+        @media (max-width: 390px) {
+            .content-area {
+                padding: 10px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .stat-card .stat-value {
+                font-size: 20px;
+            }
+
+            .product-row .p-img {
+                width: 40px;
+                height: 40px;
+            }
+
+            .edit-field {
+                width: 50px !important;
+                font-size: 12px;
+                padding: 5px 6px;
+            }
+
+            .btn-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
+            }
+
+            .toggle {
+                width: 38px;
+                height: 20px;
+            }
+
+            .toggle .slider::before {
+                width: 14px;
+                height: 14px;
+            }
+
+            .toggle input:checked+.slider::before {
+                transform: translateX(18px);
+            }
+        }
+
+        /* Login screen mobile */
+        @media (max-width: 480px) {
+            #login-screen {
+                padding: 16px;
+            }
+
+            .login-card {
+                padding: 28px 20px;
+                border-radius: 12px;
+            }
+
+            .login-card h1 {
+                font-size: 24px;
+            }
+
+            .login-card .subtitle {
+                font-size: 13px;
+                margin-bottom: 20px;
+            }
+
+            .login-card input {
+                padding: 14px 16px;
+                font-size: 15px;
+                margin-bottom: 10px;
+            }
+
+            .login-card .btn-login {
+                padding: 16px;
+                font-size: 15px;
+            }
+        }
+
+        /* Landscape on phones */
+        @media (max-height: 500px) and (orientation: landscape) {
+            #login-screen {
+                padding: 12px;
+            }
+
+            .login-card {
+                padding: 20px;
+                max-width: 360px;
+            }
+
+            .login-card h1 {
+                font-size: 20px;
+                margin-bottom: 2px;
+            }
+
+            .login-card .subtitle {
+                margin-bottom: 12px;
+            }
+
+            .login-card input {
+                padding: 10px 14px;
+                margin-bottom: 8px;
+            }
+
+            .modal-box {
+                max-height: 90vh;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-toggle {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 
@@ -1010,8 +1437,7 @@
                         <h2 id="page-title">Dashboard</h2>
                     </div>
                     <div class="topbar-actions">
-                        <span id="status-badge" class="status-badge status-saved">● Saved</span>
-                        <button class="btn-publish" id="publish-btn" onclick="pushChanges()">🚀 Publish</button>
+                        <button class="btn-publish" id="publish-btn" onclick="pushChanges()">Save Settings</button>
                     </div>
                 </div>
 
@@ -1019,6 +1445,16 @@
                     <!-- Overview Tab -->
                     <div class="tab active" id="tab-overview">
                         <div class="stats-grid">
+                            <div class="stat-card" style="border: 2px solid var(--accent);">
+                                <div class="stat-icon">₹</div>
+                                <div class="stat-value" id="stat-revenue">0</div>
+                                <div class="stat-label">Total Revenue</div>
+                            </div>
+                            <div class="stat-card" style="border: 2px solid var(--accent);">
+                                <div class="stat-icon">🛍️</div>
+                                <div class="stat-value" id="stat-sales">0</div>
+                                <div class="stat-label">Total Sales</div>
+                            </div>
                             <div class="stat-card">
                                 <div class="stat-icon">📦</div>
                                 <div class="stat-value" id="stat-total">0</div>
@@ -1253,49 +1689,30 @@
         }
 
         // ===== DATA FETCH =====
+        const FB_URL = "https://aftercurfew-722d4-default-rtdb.asia-southeast1.firebasedatabase.app";
+
         async function fetchData() {
             try {
-                const url = `https://api.github.com/repos/${config.user}/${config.repo}/contents/js/app.js`;
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `token ${config.token}`, 'Accept': 'application/vnd.github.v3+json' }
-                });
-                if (!res.ok) throw new Error('Failed to fetch. Check credentials.');
+                const res = await fetch(FB_URL + '/.json');
+                if (!res.ok) throw new Error('Failed to fetch from Firebase');
                 const data = await res.json();
-                fileSha = data.sha;
-                appJsContent = new TextDecoder().decode(Uint8Array.from(atob(data.content), c => c.charCodeAt(0)));
-                parseData();
+
+                if (data) {
+                    siteConfig = data.siteConfig || {};
+                    products = data.products || [];
+                }
+
                 renderAll();
+                fetchOrders(true); // Load sales stats silently in background
             } catch (e) {
-                alert('Error: ' + e.message);
+                alert('Connection Error: ' + e.message);
                 document.getElementById('login-screen').style.display = 'flex';
                 document.getElementById('dashboard').style.display = 'none';
             }
         }
 
-        function parseData() {
-            // Parse products
-            const prodMatch = appJsContent.match(/const products = \[([\s\S]*?)\];/);
-            if (prodMatch && prodMatch[1]) {
-                try { products = JSON.parse(`[${prodMatch[1]}]`); }
-                catch (e) { alert('Error parsing products: ' + e.message); products = []; }
-            }
-            // Parse siteConfig
-            const configMatch = appJsContent.match(/const siteConfig = (\{[\s\S]*?\});/);
-            if (configMatch && configMatch[1]) {
-                try { siteConfig = JSON.parse(configMatch[1]); }
-                catch (e) {
-                    console.warn('Could not parse siteConfig, using defaults');
-                    siteConfig = { ownerPhone: "919265807630", deliveryHours: "10 PM - 3 AM", announcement: "", deliveryFee: 0, minOrder: 0 };
-                }
-            } else {
-                siteConfig = { ownerPhone: "919265807630", deliveryHours: "10 PM - 3 AM", announcement: "", deliveryFee: 0, minOrder: 0 };
-            }
-            // Parse OWNER_PHONE_NUMBER as fallback
-            if (!siteConfig.ownerPhone) {
-                const phoneMatch = appJsContent.match(/OWNER_PHONE_NUMBER\s*=\s*"(\d+)"/);
-                if (phoneMatch) siteConfig.ownerPhone = phoneMatch[1];
-            }
-        }
+        // Parse Data is no longer needed since JSON comes directly from Firebase
+        function parseData() { }
 
         // ===== RENDER =====
         function renderAll() {
@@ -1332,7 +1749,17 @@
         function renderProductList() {
             const list = document.getElementById('product-list');
             const q = (document.getElementById('product-search')?.value || '').toLowerCase();
-            const filtered = q ? products.filter(p => p.name.toLowerCase().includes(q)) : products;
+            let filtered = q ? products.filter(p => p.name.toLowerCase().includes(q)) : [...products];
+
+            // Sort: in-stock first (by quantity desc), then out-of-stock
+            filtered.sort((a, b) => {
+                const stockA = typeof a.stock === 'number' ? a.stock : (a.inStock ? 10 : 0);
+                const stockB = typeof b.stock === 'number' ? b.stock : (b.inStock ? 10 : 0);
+                if (stockA === 0 && stockB === 0) return 0;
+                if (stockA === 0) return 1;
+                if (stockB === 0) return -1;
+                return stockB - stockA;
+            });
 
             if (filtered.length === 0) {
                 list.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px;">No products found.</p>';
@@ -1378,7 +1805,7 @@
         }
 
         // ===== PRODUCT CRUD =====
-        function toggleStock(index) {
+        async function toggleStock(index) {
             const current = typeof products[index].stock === 'number' ? products[index].stock : (products[index].inStock ? 10 : 0);
             if (current > 0) {
                 products[index].stock = 0;
@@ -1387,31 +1814,73 @@
                 products[index].stock = 10;
                 products[index].inStock = true;
             }
-            markUnsaved();
             renderAll();
+
+            // Push instantly
+            try {
+                await fetch(`${FB_URL}/products/${index}.json`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stock: products[index].stock, inStock: products[index].inStock })
+                });
+                showToast('Stock toggled instantly!');
+            } catch (e) {
+                showToast('Failed to sync stock', true);
+            }
         }
 
-        function updateStock(index, value) {
+        async function updateStock(index, value) {
             const stock = Math.max(0, parseInt(value) || 0);
             products[index].stock = stock;
             products[index].inStock = stock > 0;
-            markUnsaved();
             renderAll();
+
+            // Push instantly
+            try {
+                await fetch(`${FB_URL}/products/${index}.json`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stock: stock, inStock: stock > 0 })
+                });
+                showToast('Stock amount updated!');
+            } catch (e) {
+                showToast('Failed to sync stock', true);
+            }
         }
 
-        function toggleAllStock(val) {
+        async function toggleAllStock(val) {
             products.forEach(p => { p.inStock = val; p.stock = val ? 10 : 0; });
-            markUnsaved();
             renderAll();
-            showToast(val ? 'All products set to In Stock (10)' : 'All products set to Sold Out (0)');
+            showToast(val ? 'Setting all to In Stock...' : 'Setting all to Sold Out...');
+
+            // Push instantly
+            try {
+                await fetch(`${FB_URL}/products.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(products)
+                });
+            } catch (e) {
+                showToast('Failed to sync all products', true);
+            }
         }
 
-        function deleteProduct(index) {
+        async function deleteProduct(index) {
             if (!confirm(`Delete "${products[index].name}"?`)) return;
             products.splice(index, 1);
-            markUnsaved();
             renderAll();
-            showToast('Product deleted');
+            showToast('Deleting...');
+
+            try {
+                await fetch(`${FB_URL}/products.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(products)
+                });
+                showToast('Product deleted globally');
+            } catch (e) {
+                showToast('Failed to globally delete product', true);
+            }
         }
 
         function showAddModal() {
@@ -1547,17 +2016,23 @@
                     products[editingIndex].image = imagePath;
                     products[editingIndex].stock = stock;
                     products[editingIndex].inStock = stock > 0;
-                    showToast('Product updated!');
                 } else {
                     products.push({
                         id: crypto.randomUUID(),
                         name, description: desc || 'New product', category, price,
                         image: imagePath, inStock: stock > 0, stock: stock
                     });
-                    showToast('Product added!');
                 }
+
+                // Push instantly
+                await fetch(`${FB_URL}/products.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(products)
+                });
+                showToast(editingIndex >= 0 ? 'Product updated globally!' : 'Product added globally!');
+
                 closeModal();
-                markUnsaved();
                 renderAll();
             } catch (e) {
                 alert('Error: ' + e.message);
@@ -1604,62 +2079,29 @@
             siteConfig.announcement = document.getElementById('set-announcement').value.trim();
             const sheetEl = document.getElementById('set-sheeturl');
             if (sheetEl) siteConfig.sheetUrl = sheetEl.value.trim();
-            markUnsaved();
             renderConfigPreview();
         }
 
         // ===== PUBLISH =====
-        function markUnsaved() {
-            hasUnsavedChanges = true;
-            const badge = document.getElementById('status-badge');
-            badge.textContent = '● Unsaved';
-            badge.className = 'status-badge status-unsaved';
-        }
-
         async function pushChanges() {
             const btn = document.getElementById('publish-btn');
             btn.textContent = 'Publishing...';
             btn.disabled = true;
 
-            const productsJson = JSON.stringify(products, null, 2);
-            const configJson = JSON.stringify(siteConfig, null, 2);
-
-            let newContent = appJsContent;
-            // Update products
-            newContent = newContent.replace(/const products = \[([\s\S]*?)\];/, `const products = ${productsJson};`);
-            // Update siteConfig if it exists, otherwise inject it before products
-            if (/const siteConfig = \{[\s\S]*?\};/.test(newContent)) {
-                newContent = newContent.replace(/const siteConfig = \{[\s\S]*?\};/, `const siteConfig = ${configJson};`);
-            } else {
-                newContent = newContent.replace(/const products = /, `const siteConfig = ${configJson};\n\n    const products = `);
-            }
-            // Update OWNER_PHONE_NUMBER
-            if (siteConfig.ownerPhone) {
-                newContent = newContent.replace(/const OWNER_PHONE_NUMBER = "[^"]*"/, `const OWNER_PHONE_NUMBER = "${siteConfig.ownerPhone}"`);
-            }
-
-            const contentEncoded = btoa(unescape(encodeURIComponent(newContent)));
-            const url = `https://api.github.com/repos/${config.user}/${config.repo}/contents/js/app.js`;
-
             try {
-                const res = await fetch(url, {
+                const res = await fetch(FB_URL + '/.json', {
                     method: 'PUT',
-                    headers: { 'Authorization': `token ${config.token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: 'Update store via Admin Panel', content: contentEncoded, sha: fileSha })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ siteConfig, products })
                 });
-                if (!res.ok) throw new Error((await res.json()).message);
-                const data = await res.json();
-                fileSha = data.content.sha;
-                appJsContent = newContent;
-                hasUnsavedChanges = false;
-                const badge = document.getElementById('status-badge');
-                badge.textContent = '● Published';
-                badge.className = 'status-badge status-saved';
-                showToast('🚀 Published successfully!');
+
+                if (!res.ok) throw new Error('Firebase update failed');
+
+                showToast('🚀 Settings Saved!');
             } catch (e) {
                 alert('Publish failed: ' + e.message);
             } finally {
-                btn.textContent = '🚀 Publish';
+                btn.textContent = 'Save Settings';
                 btn.disabled = false;
             }
         }
@@ -1714,25 +2156,37 @@
         // ===== ORDERS FROM GOOGLE SHEET =====
         let cachedOrders = [];
 
-        async function fetchOrders() {
+        async function fetchOrders(silent = false) {
             const area = document.getElementById('orders-table-area');
             if (!siteConfig.sheetUrl) {
-                area.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px;">⚠️ Set your Google Sheet URL in Settings first.</p>';
+                if (!silent && area) area.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px;">⚠️ Set your Google Sheet URL in Settings first.</p>';
                 return;
             }
-            area.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px;">Loading orders...</p>';
+            if (!silent && area) area.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px;">Loading orders...</p>';
             try {
                 const res = await fetch(siteConfig.sheetUrl);
                 const data = await res.json();
                 if (data.status === 'success' && data.orders) {
                     cachedOrders = data.orders;
-                    renderOrders();
-                    showToast(`Loaded ${data.orders.length} orders`);
+
+                    // Update stats
+                    const totalSales = cachedOrders.length;
+                    const totalRevenue = cachedOrders.reduce((sum, o) => sum + (parseFloat(o['Total']) || 0), 0);
+
+                    const revEl = document.getElementById('stat-revenue');
+                    const salesEl = document.getElementById('stat-sales');
+                    if (revEl) revEl.textContent = '₹' + totalRevenue;
+                    if (salesEl) salesEl.textContent = totalSales;
+
+                    if (!silent) {
+                        renderOrders();
+                        showToast(`Loaded ${data.orders.length} orders`);
+                    }
                 } else {
-                    area.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">❌ Failed to load: ' + (data.message || 'Unknown error') + '</p>';
+                    if (!silent && area) area.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">❌ Failed to load: ' + (data.message || 'Unknown error') + '</p>';
                 }
             } catch (e) {
-                area.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">❌ Error: ' + e.message + '</p>';
+                if (!silent && area) area.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">❌ Error: ' + e.message + '</p>';
             }
         }
 

@@ -40,213 +40,33 @@ document.addEventListener('DOMContentLoaded', function () {
     const floorError = document.getElementById('floor-error');
     const roomError = document.getElementById('room-error');
 
-    // --- SITE CONFIGURATION ---
-    const siteConfig = {
-  "ownerPhone": "919265807630",
-  "deliveryHours": "12 AM - 3 AM",
-  "announcement": "Get FREE delivery above Rs. 200!!!",
-  "deliveryFee": 10,
-  "minOrder": 0,
-  "pickupLocation": "Room 730",
-  "sheetUrl": "https://script.google.com/macros/s/AKfycbyYb-HK6MaLTDaAtLEJ5fsHSHemTZIxjIR6EdHaPu63my-XSVMhCikGjZPw1RDWr7OM/exec"
-};
+    const FB_URL = "https://aftercurfew-722d4-default-rtdb.asia-southeast1.firebasedatabase.app";
 
-    // --- CONFIGURATION ---
-    const OWNER_PHONE_NUMBER = siteConfig.ownerPhone;
+    // --- SITE CONFIGURATION ---
+    let siteConfig = {
+        ownerPhone: "919265807630",
+        deliveryHours: "12 AM - 3 AM",
+        deliveryFee: 10,
+        pickupLocation: "Room 730"
+    };
 
     // --- PRODUCT DATA ---
-    const products = [
-  {
-    "id": "675c7715-1e96-486f-8bc9-77715a935a09",
-    "name": "Maggi Instant Noodles",
-    "description": "Classic Maggi, 2-minute preparation",
-    "category": "instant-noodles",
-    "price": 20,
-    "image": "images/maggi20.png",
-    "inStock": true,
-    "stock": 8
-  },
-  {
-    "id": "958a101b-3893-4748-b67a-4c013cd19bc1",
-    "name": "Maggi Cup Cheesy",
-    "description": "Hot, cheesy noodles ready in a cup",
-    "category": "cup-noodles",
-    "price": 80,
-    "image": "images/maggi_cup_cheesy_80.png",
-    "inStock": false,
-    "stock": 0
-  },
-  {
-    "id": "bc98cf1b-4e66-4a75-9b04-ba33dd8742c2",
-    "name": "Maggi Cup Chilli",
-    "description": "Spicy, tangy chilli flavor in convenient cup",
-    "category": "cup-noodles",
-    "price": 60,
-    "image": "images/maggi_cup_chilli_60.png",
-    "inStock": false,
-    "stock": 0
-  },
-  {
-    "id": "d64a1421-b87a-4da9-83b3-f9febf5f7a5f",
-    "name": "Diet Coke 300ml",
-    "description": "Zero sugar, full flavor, caffeine boost - 300ml can",
-    "category": "beverages",
-    "price": 50,
-    "image": "images/dietcoke_300ml_45.png",
-    "inStock": true,
-    "stock": 8
-  },
-  {
-    "id": "438137a9-0e2b-4455-8161-ecf04b658cc8",
-    "name": "Nissin Geki Spicy Cheesy Noodles",
-    "description": "Creamy cheesy flavor in convenient cup",
-    "category": "instant-noodles",
-    "price": 60,
-    "image": "images/nissin_cheesy_60.png",
-    "inStock": true,
-    "stock": 6
-  },
-  {
-    "id": "7981c4cc-15b4-4aa3-b267-b8522a598c54",
-    "name": "Nissin Geki Spicy Kimchi Noodles",
-    "description": "Spicy Korean kimchi flavor sensation",
-    "category": "instant-noodles",
-    "price": 60,
-    "image": "images/nissin_kimchi_60.png",
-    "inStock": true,
-    "stock": 5
-  },
-  {
-    "id": "e12480d7-267c-4017-82fb-6305a3685798",
-    "name": "Monster Energy Drink",
-    "description": "Energy drink for that extra boost",
-    "category": "beverages",
-    "price": 110,
-    "image": "images/monster_100.png",
-    "inStock": true,
-    "stock": 2
-  },
-  {
-    "id": "73b4b6c6-8d6a-4da9-ab0d-83173d5a1858",
-    "name": "Maggi Cup Manchurian",
-    "description": "Tangy manchurian flavor in convenient cup",
-    "category": "cup-noodles",
-    "price": 80,
-    "image": "images/maggi_cup_manchurian_80.png",
-    "inStock": false,
-    "stock": 0
-  },
-  {
-    "id": "a7c91b3d-5e84-4f2a-b81c-9d3e6f7a8b12",
-    "name": "Nissin Geki Spicy Veg Noodles",
-    "description": "Delicious Korean flavor noodles, hot and spicy!",
-    "category": "instant-noodles",
-    "price": 60,
-    "image": "images/nissin_masala_60.png",
-    "inStock": false,
-    "stock": 0
-  },
-  {
-    "id": "39e191f9-0fd4-4d6e-ba3f-34335e373919",
-    "name": "Manchow Cup Noodles",
-    "description": "WIcked Good! Hot and ready in 5 minutes!",
-    "category": "cup-noodles",
-    "price": 65,
-    "image": "images/wickedgood_manchow_60.png",
-    "inStock": true,
-    "stock": 1
-  },
-  {
-    "id": "93e03624-5935-4c73-952b-abed7c8feca2",
-    "name": "Masala Cup Noodles",
-    "description": "Cup Noodles Mazedar Masala",
-    "category": "cup-noodles",
-    "price": 65,
-    "image": "images/1770812433536-138.png",
-    "inStock": false,
-    "stock": 0
-  },
-  {
-    "id": "c217e1ee-284e-4e20-90da-963986fb456d",
-    "name": "Korean Spicy Cup Noodles  Veg",
-    "description": "Hot and Spicy... Ready in 5 minutes!",
-    "category": "cup-noodles",
-    "price": 85,
-    "image": "images/1770812391306-989.png",
-    "inStock": true,
-    "stock": 2
-  },
-  {
-    "id": "336395ab-7aa7-4fe7-a632-d1014c936d9b",
-    "name": "Wai Wai Cup Noodles",
-    "description": "Hot and ready in 5 minutes, no bowl needed!",
-    "category": "cup-noodles",
-    "price": 65,
-    "image": "images/1770812350560-333.png",
-    "inStock": true,
-    "stock": 2
-  },
-  {
-    "id": "9098cf10-617a-4911-8140-c265c94f39f5",
-    "name": "Maggi Masala Cuppa",
-    "description": "Classic Maggi Masala Cup Noodles, ready in 5 minutes!",
-    "category": "cup-noodles",
-    "price": 65,
-    "image": "images/1770812576209-552.png",
-    "inStock": false,
-    "stock": 0
-  },
-  {
-    "id": "32890222-281b-4a34-85b5-cbd3f2d3b522",
-    "name": "KChow Korean Ramen",
-    "description": "Hot and ready in 5 minutes!",
-    "category": "instant-noodles",
-    "price": 75,
-    "image": "images/1770813096864-508.png",
-    "inStock": false,
-    "stock": 0
-  },
-  {
-    "id": "b6c73cd9-f918-488a-8809-bb2769cc7fe6",
-    "name": "Nissin Geki Carbonara Creamy Veg",
-    "description": "Fiery Korean-style noodles in rich & creamy carbonara sauce.",
-    "category": "instant-noodles",
-    "price": 89,
-    "image": "images/1772126865445-484.png",
-    "inStock": true,
-    "stock": 4
-  },
-  {
-    "id": "c00b0988-8aac-4b56-a12e-4e7babc41c37",
-    "name": "Monster Pipeline Punch",
-    "description": "Exotic!",
-    "category": "beverages",
-    "price": 150,
-    "image": "images/1772127026454-488.png",
-    "inStock": true,
-    "stock": 1
-  },
-  {
-    "id": "4cfba65e-e61c-477f-a45c-9cf05b3c7f53",
-    "name": "Bikaji Chowpati BhelPuri",
-    "description": "Perfect for THAT craving.",
-    "category": "snacks",
-    "price": 50,
-    "image": "images/1772474598513-36.png",
-    "inStock": true,
-    "stock": 2
-  },
-  {
-    "id": "83d9f702-19f9-47f5-9a0b-560cfd3ab899",
-    "name": "Knorr K-Pot Spicy Jjajangmyeon Veg Meal Korean Ramen",
-    "description": "Delicious Korean flavor noodles, hot and spicy!",
-    "category": "cup-noodles",
-    "price": 65,
-    "image": "images/1772474686695-933.png",
-    "inStock": true,
-    "stock": 2
-  }
-];
+    let products = [];
+
+    // --- FIREBASE SYNC ---
+    async function loadFirebaseData() {
+        try {
+            const res = await fetch(FB_URL + '/.json');
+            const data = await res.json();
+            if (data) {
+                if (data.siteConfig) siteConfig = data.siteConfig;
+                if (data.products) products = data.products;
+                renderProducts(); // Re-render with live data
+            }
+        } catch (e) {
+            console.error("Failed to load Firebase data:", e);
+        }
+    }
 
     // State
     let cart = [];
@@ -402,6 +222,9 @@ document.addEventListener('DOMContentLoaded', function () {
     function saveSettings(theme) {
         localStorage.setItem('aftercurfew-settings', JSON.stringify({ theme }));
     }
+
+    // Call load on script init
+    loadFirebaseData();
 
     // Apply theme
     function applyTheme(themeName) {
@@ -639,8 +462,9 @@ document.addEventListener('DOMContentLoaded', function () {
         message += `\n*Total: ${formatCurrency(total)}*`;
 
         // Open WhatsApp
+        const ownerPhone = siteConfig.ownerPhone || "919265807630";
         const encodedMessage = encodeURIComponent(message);
-        const whatsappUrl = `https://wa.me/${OWNER_PHONE_NUMBER}?text=${encodedMessage}`;
+        const whatsappUrl = `https://wa.me/${ownerPhone}?text=${encodedMessage}`;
         window.open(whatsappUrl, '_blank');
 
         // Save to local history
@@ -673,6 +497,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Log to Google Sheet (fire-and-forget)
         logOrderToSheet(orderData);
+
+        // Deduct stock instantly in Firebase for everyone globally
+        cart.forEach(item => {
+            const productIndex = products.findIndex(p => p.name === item.name);
+            if (productIndex !== -1) {
+                const product = products[productIndex];
+                const currentStock = typeof product.stock === 'number' ? product.stock : (product.inStock ? 10 : 0);
+                const newStock = Math.max(0, currentStock - item.quantity);
+                product.stock = newStock;
+                product.inStock = newStock > 0;
+
+                // Fire off REST update to push new stock to server
+                fetch(`${FB_URL}/products/${productIndex}.json`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stock: newStock, inStock: newStock > 0 })
+                }).catch(e => console.warn('Silent stock push failed', e));
+            }
+        });
+
+        // Re-render products to show updated stock
+        renderProducts();
 
         // Clear cart and close
         cart = [];

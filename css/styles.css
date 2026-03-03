@@ -2858,3 +2858,377 @@ input[type="reset"] {
 .toast-error {
     border-left-color: var(--error);
 }
+
+/* ===== MOBILE OPTIMIZATIONS ===== */
+
+/* Safe area insets for notched phones (iPhone X+, etc.) */
+body {
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+/* Prevent horizontal overflow on mobile */
+html, body {
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+}
+
+/* Smooth scrolling on iOS */
+.main-content,
+.cart-items,
+.checkout-form,
+.favorites-items,
+.orders-list {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Small phones (up to 390px — iPhone SE, older Androids) */
+@media (max-width: 390px) {
+    .app-title {
+        font-size: 17px;
+    }
+
+    .logo-container {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+
+    .search-container {
+        padding: 8px 10px 6px;
+    }
+
+    .search-bar {
+        padding: 10px 12px;
+    }
+
+    .search-bar input {
+        font-size: 15px;
+    }
+
+    .category-container {
+        padding: 6px 10px 10px;
+        gap: 8px;
+    }
+
+    .category-pill {
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+    .product-grid {
+        gap: 8px;
+        padding: 0 8px 8px;
+    }
+
+    .product-info {
+        padding: 10px;
+    }
+
+    .product-name {
+        font-size: 13px;
+    }
+
+    .product-description {
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+
+    .product-price {
+        font-size: 15px;
+    }
+
+    .add-button {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+
+    .favorite-button {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+        top: 8px;
+        right: 8px;
+    }
+
+    .favorite-button svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .stock-badge {
+        font-size: 10px;
+        padding: 3px 8px;
+        bottom: 6px;
+        left: 6px;
+    }
+
+    .cart-bar {
+        padding: 12px 10px;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+
+    .cart-total {
+        font-size: 16px;
+    }
+
+    .view-cart-button {
+        padding: 12px 18px;
+        font-size: 14px;
+    }
+
+    .modal-header {
+        padding: 16px;
+    }
+
+    .modal-header h2 {
+        font-size: 18px;
+    }
+
+    .checkout-form {
+        padding: 16px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-group label {
+        font-size: 13px;
+        margin-bottom: 6px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        padding: 10px 12px;
+        font-size: 15px;
+    }
+
+    .delivery-option-card {
+        padding: 12px 14px;
+        gap: 10px;
+    }
+
+    .delivery-option-icon {
+        font-size: 24px;
+        width: 32px;
+    }
+
+    .delivery-option-title {
+        font-size: 14px;
+    }
+
+    .delivery-option-desc {
+        font-size: 12px;
+    }
+
+    .confirmation-content {
+        padding: 24px 20px;
+    }
+
+    .checkmark {
+        width: 64px;
+        height: 64px;
+        font-size: 32px;
+    }
+
+    .confirmation-content h2 {
+        font-size: 20px;
+    }
+}
+
+/* Standard phones (391px - 767px) */
+@media (max-width: 767px) {
+    /* Add bottom padding for cart bar */
+    .main-content {
+        padding-bottom: 80px;
+    }
+
+    /* Cart bar safe area */
+    .cart-bar {
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+
+    /* Disable hover effects on touch — they cause sticky hover on mobile */
+    .product-card:hover {
+        transform: none;
+        box-shadow: none;
+        border: 2px solid transparent;
+    }
+
+    .product-card:hover::before,
+    .product-card:hover::after {
+        opacity: 0;
+    }
+
+    /* Keep active state for tap feedback */
+    .product-card:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+    }
+
+    .add-button:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .add-button:active {
+        transform: scale(0.95);
+    }
+
+    .category-pill:hover::before {
+        transform: scaleX(0);
+    }
+
+    /* Improve checkout form spacing */
+    .checkout-modal .modal-content {
+        max-height: 90vh;
+    }
+
+    /* Ensure submit button is always visible */
+    .form-footer {
+        position: sticky;
+        bottom: 0;
+        background: var(--charcoal);
+        padding: 12px 0;
+        margin: 0 -20px;
+        padding-left: 20px;
+        padding-right: 20px;
+        border-top: 1px solid var(--dark-surface);
+    }
+
+    /* Better cart item layout on phones */
+    .cart-item {
+        gap: 12px;
+    }
+
+    .item-image {
+        width: 40px;
+        height: 40px;
+    }
+
+    /* Order items in My Orders modal */
+    .order-item {
+        padding: 14px;
+    }
+
+    .order-header {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .order-date {
+        text-align: left;
+    }
+
+    .order-item-quantity {
+        margin: 0 8px;
+    }
+
+    /* Toast above cart bar */
+    #toast-container {
+        bottom: 100px;
+        width: 90%;
+        max-width: 380px;
+    }
+
+    .toast {
+        padding: 10px 18px;
+        font-size: 13px;
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Side nav width */
+    .side-nav {
+        width: 85vw;
+        max-width: 320px;
+    }
+}
+
+/* Landscape phone optimization */
+@media (max-height: 500px) and (orientation: landscape) {
+    .modal-content {
+        max-height: 95vh;
+    }
+
+    .cart-items {
+        max-height: 30vh;
+    }
+
+    .checkout-form {
+        padding: 12px 16px;
+    }
+
+    .form-group {
+        margin-bottom: 12px;
+    }
+
+    .confirmation-content {
+        padding: 16px;
+    }
+
+    .checkmark {
+        width: 48px;
+        height: 48px;
+        font-size: 24px;
+        margin-bottom: 12px;
+    }
+}
+
+/* Touch device improvements */
+@media (hover: none) and (pointer: coarse) {
+    /* Disable all hover animations on touch devices */
+    .product-card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    .product-card:hover::before {
+        opacity: 0 !important;
+    }
+
+    .product-card:hover::after {
+        opacity: 0 !important;
+    }
+
+    /* Active tap feedback instead */
+    .product-card:active {
+        transform: scale(0.97) !important;
+        transition: transform 0.1s ease !important;
+    }
+
+    .add-button:active {
+        transform: scale(0.95) !important;
+    }
+
+    .category-pill:active {
+        transform: scale(0.95) !important;
+    }
+
+    /* Bigger touch targets */
+    .nav-link {
+        padding: 18px 16px;
+    }
+
+    .nav-theme-label {
+        padding: 14px 16px;
+    }
+
+    /* Prevent text selection on UI elements */
+    button,
+    .category-pill,
+    .delivery-option-card,
+    .nav-link,
+    .nav-theme-label {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Remove tap highlight on all interactive elements */
+    a, button, input, select, textarea, label {
+        -webkit-tap-highlight-color: transparent;
+    }
+}
