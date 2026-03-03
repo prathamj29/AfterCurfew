@@ -42,194 +42,211 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // --- SITE CONFIGURATION ---
     const siteConfig = {
-  "ownerPhone": "919265807630",
-  "deliveryHours": "12 AM - 3 AM",
-  "announcement": "Get FREE delivery above Rs. 200!!!",
-  "deliveryFee": 10,
-  "minOrder": 0,
-  "pickupLocation": "Room 730",
-  "sheetUrl": "https://script.google.com/macros/s/AKfycbyYb-HK6MaLTDaAtLEJ5fsHSHemTZIxjIR6EdHaPu63my-XSVMhCikGjZPw1RDWr7OM/exec"
-};
+        "ownerPhone": "919265807630",
+        "deliveryHours": "12 AM - 3 AM",
+        "announcement": "Get FREE delivery above Rs. 200!!!",
+        "deliveryFee": 10,
+        "minOrder": 0,
+        "pickupLocation": "Room 730",
+        "sheetUrl": "https://script.google.com/macros/s/AKfycbyYb-HK6MaLTDaAtLEJ5fsHSHemTZIxjIR6EdHaPu63my-XSVMhCikGjZPw1RDWr7OM/exec"
+    };
 
     // --- CONFIGURATION ---
     const OWNER_PHONE_NUMBER = siteConfig.ownerPhone;
 
     // --- PRODUCT DATA ---
     const products = [
-  {
-    "id": "675c7715-1e96-486f-8bc9-77715a935a09",
-    "name": "Maggi Instant Noodles",
-    "description": "Classic Maggi, 2-minute preparation",
-    "category": "snacks",
-    "price": 20,
-    "image": "images/maggi20.png",
-    "inStock": true
-  },
-  {
-    "id": "958a101b-3893-4748-b67a-4c013cd19bc1",
-    "name": "Maggi Cup Cheesy",
-    "description": "Hot, cheesy noodles ready in a cup",
-    "category": "snacks",
-    "price": 80,
-    "image": "images/maggi_cup_cheesy_80.png",
-    "inStock": false
-  },
-  {
-    "id": "bc98cf1b-4e66-4a75-9b04-ba33dd8742c2",
-    "name": "Maggi Cup Chilli",
-    "description": "Spicy, tangy chilli flavor in convenient cup",
-    "category": "snacks",
-    "price": 60,
-    "image": "images/maggi_cup_chilli_60.png",
-    "inStock": false
-  },
-  {
-    "id": "d64a1421-b87a-4da9-83b3-f9febf5f7a5f",
-    "name": "Diet Coke 300ml",
-    "description": "Zero sugar, full flavor, caffeine boost - 300ml can",
-    "category": "drinks",
-    "price": 50,
-    "image": "images/dietcoke_300ml_45.png",
-    "inStock": true,
-    "stock": 8
-  },
-  {
-    "id": "438137a9-0e2b-4455-8161-ecf04b658cc8",
-    "name": "Nissin Geki Spicy Cheesy Noodles",
-    "description": "Creamy cheesy flavor in convenient cup",
-    "category": "snacks",
-    "price": 60,
-    "image": "images/nissin_cheesy_60.png",
-    "inStock": true
-  },
-  {
-    "id": "7981c4cc-15b4-4aa3-b267-b8522a598c54",
-    "name": "Nissin Geki Spicy Kimchi Noodles",
-    "description": "Spicy Korean kimchi flavor sensation",
-    "category": "snacks",
-    "price": 60,
-    "image": "images/nissin_kimchi_60.png",
-    "inStock": true
-  },
-  {
-    "id": "e12480d7-267c-4017-82fb-6305a3685798",
-    "name": "Monster Energy Drink",
-    "description": "Energy drink for that extra boost",
-    "category": "drinks",
-    "price": 110,
-    "image": "images/monster_100.png",
-    "inStock": true,
-    "stock": 2
-  },
-  {
-    "id": "73b4b6c6-8d6a-4da9-ab0d-83173d5a1858",
-    "name": "Maggi Cup Manchurian",
-    "description": "Tangy manchurian flavor in convenient cup",
-    "category": "snacks",
-    "price": 80,
-    "image": "images/maggi_cup_manchurian_80.png",
-    "inStock": false
-  },
-  {
-    "id": "a7c91b3d-5e84-4f2a-b81c-9d3e6f7a8b12",
-    "name": "Nissin Geki Spicy Veg Noodles",
-    "description": "Delicious Korean flavor noodles, hot and spicy!",
-    "category": "snacks",
-    "price": 60,
-    "image": "images/nissin_masala_60.png",
-    "inStock": false
-  },
-  {
-    "id": "39e191f9-0fd4-4d6e-ba3f-34335e373919",
-    "name": "Manchow Cup Noodles",
-    "description": "WIcked Good! Hot and ready in 5 minutes!",
-    "category": "snacks",
-    "price": 65,
-    "image": "images/wickedgood_manchow_60.png",
-    "inStock": true
-  },
-  {
-    "id": "93e03624-5935-4c73-952b-abed7c8feca2",
-    "name": "Masala Cup Noodles",
-    "description": "Cup Noodles Mazedar Masala",
-    "category": "snacks",
-    "price": 65,
-    "image": "images/1770812433536-138.png",
-    "inStock": false
-  },
-  {
-    "id": "c217e1ee-284e-4e20-90da-963986fb456d",
-    "name": "Korean Spicy Cup Noodles  Veg",
-    "description": "Hot and Spicy... Ready in 5 minutes!",
-    "category": "snacks",
-    "price": 85,
-    "image": "images/1770812391306-989.png",
-    "inStock": true
-  },
-  {
-    "id": "336395ab-7aa7-4fe7-a632-d1014c936d9b",
-    "name": "Wai Wai Cup Noodles",
-    "description": "Hot and ready in 5 minutes, no bowl needed!",
-    "category": "snacks",
-    "price": 65,
-    "image": "images/1770812350560-333.png",
-    "inStock": false
-  },
-  {
-    "id": "9098cf10-617a-4911-8140-c265c94f39f5",
-    "name": "Maggi Masala Cuppa",
-    "description": "Classic Maggi Masala Cup Noodles, ready in 5 minutes!",
-    "category": "snacks",
-    "price": 65,
-    "image": "images/1770812576209-552.png",
-    "inStock": false
-  },
-  {
-    "id": "32890222-281b-4a34-85b5-cbd3f2d3b522",
-    "name": "KChow Korean Ramen",
-    "description": "Hot and ready in 5 minutes!",
-    "category": "snacks",
-    "price": 75,
-    "image": "images/1770813096864-508.png",
-    "inStock": false
-  },
-  {
-    "id": "b6c73cd9-f918-488a-8809-bb2769cc7fe6",
-    "name": "Nissin Geki Carbonara Creamy Veg",
-    "description": "Fiery Korean-style noodles in rich & creamy carbonara sauce.",
-    "category": "snacks",
-    "price": 89,
-    "image": "images/1772126865445-484.png",
-    "inStock": true
-  },
-  {
-    "id": "c00b0988-8aac-4b56-a12e-4e7babc41c37",
-    "name": "Monster Pipeline Punch",
-    "description": "Exotic!",
-    "category": "drinks",
-    "price": 150,
-    "image": "images/1772127026454-488.png",
-    "inStock": false
-  },
-  {
-    "id": "4cfba65e-e61c-477f-a45c-9cf05b3c7f53",
-    "name": "Bikaji Chowpati BhelPuri",
-    "description": "Perfect for THAT craving.",
-    "category": "snacks",
-    "price": 50,
-    "image": "images/1772474598513-36.png",
-    "inStock": true
-  },
-  {
-    "id": "83d9f702-19f9-47f5-9a0b-560cfd3ab899",
-    "name": "Knorr K-Pot Spicy Jjajangmyeon Veg Meal Korean Ramen",
-    "description": "Delicious Korean flavor noodles, hot and spicy!",
-    "category": "snacks",
-    "price": 65,
-    "image": "images/1772474686695-933.png",
-    "inStock": false
-  }
-];
+        {
+            "id": "675c7715-1e96-486f-8bc9-77715a935a09",
+            "name": "Maggi Instant Noodles",
+            "description": "Classic Maggi, 2-minute preparation",
+            "category": "instant-noodles",
+            "price": 20,
+            "image": "images/maggi20.png",
+            "inStock": true,
+            "stock": 8
+        },
+        {
+            "id": "958a101b-3893-4748-b67a-4c013cd19bc1",
+            "name": "Maggi Cup Cheesy",
+            "description": "Hot, cheesy noodles ready in a cup",
+            "category": "cup-noodles",
+            "price": 80,
+            "image": "images/maggi_cup_cheesy_80.png",
+            "inStock": false,
+            "stock": 0
+        },
+        {
+            "id": "bc98cf1b-4e66-4a75-9b04-ba33dd8742c2",
+            "name": "Maggi Cup Chilli",
+            "description": "Spicy, tangy chilli flavor in convenient cup",
+            "category": "cup-noodles",
+            "price": 60,
+            "image": "images/maggi_cup_chilli_60.png",
+            "inStock": false,
+            "stock": 0
+        },
+        {
+            "id": "d64a1421-b87a-4da9-83b3-f9febf5f7a5f",
+            "name": "Diet Coke 300ml",
+            "description": "Zero sugar, full flavor, caffeine boost - 300ml can",
+            "category": "beverages",
+            "price": 50,
+            "image": "images/dietcoke_300ml_45.png",
+            "inStock": true,
+            "stock": 8
+        },
+        {
+            "id": "438137a9-0e2b-4455-8161-ecf04b658cc8",
+            "name": "Nissin Geki Spicy Cheesy Noodles",
+            "description": "Creamy cheesy flavor in convenient cup",
+            "category": "cup-noodles",
+            "price": 60,
+            "image": "images/nissin_cheesy_60.png",
+            "inStock": true,
+            "stock": 6
+        },
+        {
+            "id": "7981c4cc-15b4-4aa3-b267-b8522a598c54",
+            "name": "Nissin Geki Spicy Kimchi Noodles",
+            "description": "Spicy Korean kimchi flavor sensation",
+            "category": "cup-noodles",
+            "price": 60,
+            "image": "images/nissin_kimchi_60.png",
+            "inStock": true,
+            "stock": 5
+        },
+        {
+            "id": "e12480d7-267c-4017-82fb-6305a3685798",
+            "name": "Monster Energy Drink",
+            "description": "Energy drink for that extra boost",
+            "category": "beverages",
+            "price": 110,
+            "image": "images/monster_100.png",
+            "inStock": true,
+            "stock": 2
+        },
+        {
+            "id": "73b4b6c6-8d6a-4da9-ab0d-83173d5a1858",
+            "name": "Maggi Cup Manchurian",
+            "description": "Tangy manchurian flavor in convenient cup",
+            "category": "cup-noodles",
+            "price": 80,
+            "image": "images/maggi_cup_manchurian_80.png",
+            "inStock": false,
+            "stock": 0
+        },
+        {
+            "id": "a7c91b3d-5e84-4f2a-b81c-9d3e6f7a8b12",
+            "name": "Nissin Geki Spicy Veg Noodles",
+            "description": "Delicious Korean flavor noodles, hot and spicy!",
+            "category": "cup-noodles",
+            "price": 60,
+            "image": "images/nissin_masala_60.png",
+            "inStock": false,
+            "stock": 0
+        },
+        {
+            "id": "39e191f9-0fd4-4d6e-ba3f-34335e373919",
+            "name": "Manchow Cup Noodles",
+            "description": "WIcked Good! Hot and ready in 5 minutes!",
+            "category": "cup-noodles",
+            "price": 65,
+            "image": "images/wickedgood_manchow_60.png",
+            "inStock": true,
+            "stock": 7
+        },
+        {
+            "id": "93e03624-5935-4c73-952b-abed7c8feca2",
+            "name": "Masala Cup Noodles",
+            "description": "Cup Noodles Mazedar Masala",
+            "category": "cup-noodles",
+            "price": 65,
+            "image": "images/1770812433536-138.png",
+            "inStock": false,
+            "stock": 0
+        },
+        {
+            "id": "c217e1ee-284e-4e20-90da-963986fb456d",
+            "name": "Korean Spicy Cup Noodles  Veg",
+            "description": "Hot and Spicy... Ready in 5 minutes!",
+            "category": "cup-noodles",
+            "price": 85,
+            "image": "images/1770812391306-989.png",
+            "inStock": true,
+            "stock": 2
+        },
+        {
+            "id": "336395ab-7aa7-4fe7-a632-d1014c936d9b",
+            "name": "Wai Wai Cup Noodles",
+            "description": "Hot and ready in 5 minutes, no bowl needed!",
+            "category": "cup-noodles",
+            "price": 65,
+            "image": "images/1770812350560-333.png",
+            "inStock": false,
+            "stock": 0
+        },
+        {
+            "id": "9098cf10-617a-4911-8140-c265c94f39f5",
+            "name": "Maggi Masala Cuppa",
+            "description": "Classic Maggi Masala Cup Noodles, ready in 5 minutes!",
+            "category": "cup-noodles",
+            "price": 65,
+            "image": "images/1770812576209-552.png",
+            "inStock": false,
+            "stock": 0
+        },
+        {
+            "id": "32890222-281b-4a34-85b5-cbd3f2d3b522",
+            "name": "KChow Korean Ramen",
+            "description": "Hot and ready in 5 minutes!",
+            "category": "cup-noodles",
+            "price": 75,
+            "image": "images/1770813096864-508.png",
+            "inStock": false,
+            "stock": 0
+        },
+        {
+            "id": "b6c73cd9-f918-488a-8809-bb2769cc7fe6",
+            "name": "Nissin Geki Carbonara Creamy Veg",
+            "description": "Fiery Korean-style noodles in rich & creamy carbonara sauce.",
+            "category": "cup-noodles",
+            "price": 89,
+            "image": "images/1772126865445-484.png",
+            "inStock": true,
+            "stock": 4
+        },
+        {
+            "id": "c00b0988-8aac-4b56-a12e-4e7babc41c37",
+            "name": "Monster Pipeline Punch",
+            "description": "Exotic!",
+            "category": "beverages",
+            "price": 150,
+            "image": "images/1772127026454-488.png",
+            "inStock": false,
+            "stock": 0
+        },
+        {
+            "id": "4cfba65e-e61c-477f-a45c-9cf05b3c7f53",
+            "name": "Bikaji Chowpati BhelPuri",
+            "description": "Perfect for THAT craving.",
+            "category": "snacks",
+            "price": 50,
+            "image": "images/1772474598513-36.png",
+            "inStock": true,
+            "stock": 10
+        },
+        {
+            "id": "83d9f702-19f9-47f5-9a0b-560cfd3ab899",
+            "name": "Knorr K-Pot Spicy Jjajangmyeon Veg Meal Korean Ramen",
+            "description": "Delicious Korean flavor noodles, hot and spicy!",
+            "category": "cup-noodles",
+            "price": 65,
+            "image": "images/1772474686695-933.png",
+            "inStock": false,
+            "stock": 0
+        }
+    ];
 
     // State
     let cart = [];
@@ -259,16 +276,40 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 2500);
     }
 
+    // Helper to get stock display info
+    function getStockInfo(product) {
+        const stock = typeof product.stock === 'number' ? product.stock : (product.inStock ? 10 : 0);
+        const isAvailable = stock > 0;
+        const isLow = stock > 0 && stock <= 3;
+        let label = '';
+        let cssClass = '';
+        if (stock === 0) {
+            label = 'Sold Out';
+            cssClass = 'out-of-stock';
+        } else if (isLow) {
+            label = 'Only ' + stock + ' left!';
+            cssClass = 'low-stock';
+        } else {
+            label = stock + ' available';
+            cssClass = 'in-stock';
+        }
+        return { stock, isAvailable, isLow, label, cssClass };
+    }
+
     // Render products dynamically
     function renderProducts() {
         if (!productGrid) return;
         productGrid.innerHTML = '';
         let visibleIndex = 0;
 
-        // Sort: in-stock items first, then out-of-stock
+        // Sort: in-stock first (by quantity desc), then out-of-stock
         const sortedProducts = [...products].sort((a, b) => {
-            if (a.inStock === b.inStock) return 0;
-            return a.inStock ? -1 : 1;
+            const stockA = typeof a.stock === 'number' ? a.stock : (a.inStock ? 10 : 0);
+            const stockB = typeof b.stock === 'number' ? b.stock : (b.inStock ? 10 : 0);
+            if (stockA === 0 && stockB === 0) return 0;
+            if (stockA === 0) return 1;
+            if (stockB === 0) return -1;
+            return stockB - stockA;
         });
 
         sortedProducts.forEach(product => {
@@ -276,18 +317,27 @@ document.addEventListener('DOMContentLoaded', function () {
             const matchesSearch = product.name.toLowerCase().includes(currentSearch);
             if (!matchesCat || !matchesSearch) return;
 
+            const info = getStockInfo(product);
             const isFav = favorites.some(f => f.id === product.id);
             const card = document.createElement('article');
-            card.className = 'product-card';
+            card.className = 'product-card' + (!info.isAvailable ? ' sold-out-card' : '');
             card.setAttribute('data-category', product.category);
             card.setAttribute('data-id', product.id);
-            card.setAttribute('data-stock', String(product.inStock));
+            card.setAttribute('data-stock', String(info.stock));
             card.setAttribute('role', 'article');
-            card.setAttribute('aria-label', product.name + ' ' + formatCurrency(product.price));
+            card.setAttribute('aria-label', product.name + ' ' + formatCurrency(product.price) + ' \u2014 ' + info.label);
             card.style.setProperty('--index', visibleIndex++);
+
+            var soldOutOverlay = !info.isAvailable ? '<div class="sold-out-overlay"><span>SOLD OUT</span></div>' : '';
+            var stockBadge = '';
+            if (info.isAvailable) {
+                stockBadge = '<div class="stock-badge' + (info.isLow ? ' stock-badge-low' : ' stock-badge-ok') + '">' + info.label + '</div>';
+            }
 
             card.innerHTML = '<div class="product-image-container">' +
                 '<img src="' + product.image + '" alt="' + product.name + '" class="product-image" loading="lazy" />' +
+                soldOutOverlay +
+                stockBadge +
                 '<button class="favorite-button' + (isFav ? ' active' : '') + '" data-product-id="' + product.id + '" aria-label="' + (isFav ? 'Remove from' : 'Add to') + ' favorites">' +
                 '<svg width="20" height="20" viewBox="0 0 24 24" fill="' + (isFav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
                 '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>' +
@@ -296,14 +346,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<h3 class="product-name">' + product.name + '</h3>' +
                 '<p class="product-description">' + product.description + '</p>' +
                 '<div class="product-footer">' +
-                '<div class="stock-status ' + (product.inStock ? 'in-stock' : 'out-of-stock') + '">' +
-                '<span class="stock-indicator ' + (product.inStock ? 'stock-in' : 'stock-out') + '"></span>' +
-                '<span class="stock-label">' + (product.inStock ? 'In Stock' : 'Out of Stock') + '</span></div>' +
+                '<div class="stock-status ' + info.cssClass + '">' +
+                '<span class="stock-indicator ' + (info.isAvailable ? (info.isLow ? 'stock-low' : 'stock-in') : 'stock-out') + '"></span>' +
+                '<span class="stock-label">' + info.label + '</span></div>' +
                 '<span class="product-price">' + formatCurrency(product.price) + '</span>' +
                 '<button class="add-button" data-name="' + product.name + '" data-price="' + product.price + '"' +
-                (!product.inStock ? ' disabled' : '') +
+                (!info.isAvailable ? ' disabled' : '') +
                 ' aria-label="Add ' + product.name + ' to cart">' +
-                (product.inStock ? 'Add to Cart' : 'Sold Out') + '</button>' +
+                (info.isAvailable ? 'Add to Cart' : 'Sold Out') + '</button>' +
                 '</div></div>';
 
             productGrid.appendChild(card);
@@ -596,6 +646,21 @@ document.addEventListener('DOMContentLoaded', function () {
         // Save to local history
         const orderId = 'AC' + Date.now().toString().slice(-5);
         orderIdDisplay.textContent = orderId;
+
+        const orderData = {
+            orderId: orderId,
+            customerName: name,
+            phone: phone,
+            deliveryType: deliveryType,
+            floor: floor || '-',
+            room: room || '-',
+            items: [...cart],
+            subtotal: subtotal,
+            deliveryFee: deliveryFee,
+            total: total,
+            instructions: instructions || '-'
+        };
+
         saveOrderToHistory({
             id: orderId,
             date: new Date().toISOString(),
@@ -606,6 +671,9 @@ document.addEventListener('DOMContentLoaded', function () {
             status: 'sent_via_whatsapp'
         });
 
+        // Log to Google Sheet (fire-and-forget)
+        logOrderToSheet(orderData);
+
         // Clear cart and close
         cart = [];
         saveCart();
@@ -613,6 +681,21 @@ document.addEventListener('DOMContentLoaded', function () {
         hideModal(checkoutModal);
         showModal(confirmationModal);
     });
+
+    // --- LOG ORDER TO GOOGLE SHEET ---
+    function logOrderToSheet(orderData) {
+        if (!siteConfig.sheetUrl) return;
+        try {
+            fetch(siteConfig.sheetUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            }).catch(err => console.warn('Sheet logging failed:', err));
+        } catch (e) {
+            console.warn('Sheet logging error:', e);
+        }
+    }
 
     function saveOrderToHistory(order) {
         let orders = JSON.parse(localStorage.getItem('aftercurfew-orders') || '[]');

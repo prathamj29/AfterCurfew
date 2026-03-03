@@ -990,6 +990,7 @@
                 </div>
                 <nav class="sidebar-nav">
                     <button class="nav-btn active" data-tab="overview"><span class="icon">📊</span> Dashboard</button>
+                    <button class="nav-btn" data-tab="orders"><span class="icon">📋</span> Orders</button>
                     <button class="nav-btn" data-tab="products"><span class="icon">📦</span> Products</button>
                     <button class="nav-btn" data-tab="settings"><span class="icon">⚙️</span> Settings</button>
                 </nav>
@@ -1034,6 +1035,11 @@
                                 <div class="stat-label">Out of Stock</div>
                             </div>
                             <div class="stat-card">
+                                <div class="stat-icon">⚠️</div>
+                                <div class="stat-value" id="stat-lowstock">0</div>
+                                <div class="stat-label">Low Stock (≤3)</div>
+                            </div>
+                            <div class="stat-card">
                                 <div class="stat-icon">🏷️</div>
                                 <div class="stat-value" id="stat-categories">0</div>
                                 <div class="stat-label">Categories</div>
@@ -1056,6 +1062,20 @@
                             <h3>Current Configuration</h3>
                             <p class="section-desc">Live settings pulled from your store.</p>
                             <div id="config-preview" style="font-size:13px;color:var(--text-muted);"></div>
+                        </div>
+                    </div>
+
+                    <!-- Orders Tab -->
+                    <div class="tab" id="tab-orders">
+                        <div class="products-toolbar">
+                            <input class="search-input" type="search"
+                                placeholder="Search orders by name, phone, or order ID..." id="order-search"
+                                oninput="renderOrders()">
+                            <button class="btn-add" onclick="fetchOrders()">🔄 Refresh</button>
+                        </div>
+                        <div id="orders-table-area">
+                            <p style="color:var(--text-dim);text-align:center;padding:40px;">Click 🔄 Refresh or set
+                                your Google Sheet URL in Settings to view orders.</p>
                         </div>
                     </div>
 
@@ -1110,6 +1130,17 @@
                                     oninput="onSettingChange()"></textarea>
                             </div>
                         </div>
+                        <div class="settings-section">
+                            <h3>📊 Google Sheet (Order Logs)</h3>
+                            <p class="section-desc">Paste the deployed Google Apps Script Web App URL. Orders will be
+                                logged to your Google Sheet.</p>
+                            <div class="setting-row">
+                                <label>Google Sheet Web App URL</label>
+                                <input class="setting-input setting-input-full" type="text" id="set-sheeturl"
+                                    placeholder="https://script.google.com/macros/s/.../exec"
+                                    oninput="onSettingChange()">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1133,10 +1164,19 @@
                 <div style="flex:1">
                     <label>Category</label>
                     <select id="m-category">
-                        <option value="snacks">Snacks</option>
-                        <option value="drinks">Drinks</option>
+                        <option value="cup-noodles">Cup Noodles</option>
+                        <option value="instant-noodles">Instant Noodles</option>
+                        <option value="beverages">Beverages</option>
+                        <option value="chocolates">Chocolates</option>
+                        <option value="snacks">Snacks (Other)</option>
                     </select>
                 </div>
+            </div>
+            <div class="form-group">
+                <label>Stock Quantity</label>
+                <input type="number" id="m-stock" placeholder="10" min="0" style="max-width:160px">
+                <span style="font-size:12px;color:var(--text-dim);margin-top:4px;display:block">Set to 0 for Sold
+                    Out</span>
             </div>
             <div class="form-group">
                 <label>Product Image</label>
@@ -1267,8 +1307,13 @@
 
         function renderStats() {
             document.getElementById('stat-total').textContent = products.length;
-            document.getElementById('stat-instock').textContent = products.filter(p => p.inStock).length;
-            document.getElementById('stat-outstock').textContent = products.filter(p => !p.inStock).length;
+            const inStock = products.filter(p => (typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0)) > 0);
+            const outStock = products.filter(p => (typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0)) === 0);
+            const lowStock = products.filter(p => { const s = typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0); return s > 0 && s <= 3; });
+            document.getElementById('stat-instock').textContent = inStock.length;
+            document.getElementById('stat-outstock').textContent = outStock.length;
+            const lowEl = document.getElementById('stat-lowstock');
+            if (lowEl) lowEl.textContent = lowStock.length;
             const cats = new Set(products.map(p => p.category));
             document.getElementById('stat-categories').textContent = cats.size;
         }
@@ -1295,6 +1340,9 @@
             }
             list.innerHTML = filtered.map((p, i) => {
                 const realIndex = products.indexOf(p);
+                const stock = typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0);
+                const stockColor = stock === 0 ? '#f87171' : stock <= 3 ? '#fbbf24' : '#34d399';
+                const stockLabel = stock === 0 ? '● Sold Out' : stock <= 3 ? '⚠ ' + stock + ' left' : '● ' + stock + ' in stock';
                 return `
             <div class="product-row">
                 <img src="${p.image}" class="p-img" onerror="this.src='https://placehold.co/56/1a1a1a/888?text=?'">
@@ -1302,13 +1350,14 @@
                     <div class="p-name">${p.name}</div>
                     <div class="p-meta">
                         <span>₹${p.price}</span>
-                        <span style="color:${p.inStock ? '#34d399' : '#f87171'};">${p.inStock ? '● In Stock' : '● Sold Out'}</span>
+                        <span style="color:${stockColor};font-weight:600;">${stockLabel}</span>
                         <span>${p.category}</span>
                     </div>
                 </div>
                 <div class="p-actions">
+                    <input type="number" class="edit-field" value="${stock}" min="0" style="width:60px;text-align:center;" onchange="updateStock(${realIndex}, this.value)" title="Stock quantity">
                     <label class="toggle" title="Toggle stock">
-                        <input type="checkbox" ${p.inStock ? 'checked' : ''} onchange="toggleStock(${realIndex})">
+                        <input type="checkbox" ${stock > 0 ? 'checked' : ''} onchange="toggleStock(${realIndex})">
                         <span class="slider"></span>
                     </label>
                     <button class="btn-icon" title="Edit" onclick="openEdit(${realIndex})">✏️</button>
@@ -1324,20 +1373,37 @@
             document.getElementById('set-delfee').value = siteConfig.deliveryFee || 0;
             document.getElementById('set-minorder').value = siteConfig.minOrder || 0;
             document.getElementById('set-announcement').value = siteConfig.announcement || '';
+            const sheetEl = document.getElementById('set-sheeturl');
+            if (sheetEl) sheetEl.value = siteConfig.sheetUrl || '';
         }
 
         // ===== PRODUCT CRUD =====
         function toggleStock(index) {
-            products[index].inStock = !products[index].inStock;
+            const current = typeof products[index].stock === 'number' ? products[index].stock : (products[index].inStock ? 10 : 0);
+            if (current > 0) {
+                products[index].stock = 0;
+                products[index].inStock = false;
+            } else {
+                products[index].stock = 10;
+                products[index].inStock = true;
+            }
+            markUnsaved();
+            renderAll();
+        }
+
+        function updateStock(index, value) {
+            const stock = Math.max(0, parseInt(value) || 0);
+            products[index].stock = stock;
+            products[index].inStock = stock > 0;
             markUnsaved();
             renderAll();
         }
 
         function toggleAllStock(val) {
-            products.forEach(p => p.inStock = val);
+            products.forEach(p => { p.inStock = val; p.stock = val ? 10 : 0; });
             markUnsaved();
             renderAll();
-            showToast(val ? 'All products set to In Stock' : 'All products set to Sold Out');
+            showToast(val ? 'All products set to In Stock (10)' : 'All products set to Sold Out (0)');
         }
 
         function deleteProduct(index) {
@@ -1356,7 +1422,8 @@
             document.getElementById('m-name').value = '';
             document.getElementById('m-desc').value = '';
             document.getElementById('m-price').value = '';
-            document.getElementById('m-category').value = 'snacks';
+            document.getElementById('m-category').value = 'cup-noodles';
+            document.getElementById('m-stock').value = '10';
             document.getElementById('m-image-url').value = '';
             document.getElementById('m-image-file').value = '';
             document.getElementById('img-preview').innerHTML = '<span>Click to upload image</span>';
@@ -1375,6 +1442,7 @@
             document.getElementById('m-desc').value = p.description;
             document.getElementById('m-price').value = p.price;
             document.getElementById('m-category').value = p.category;
+            document.getElementById('m-stock').value = typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0);
             document.getElementById('m-image-url').value = p.image;
             document.getElementById('m-image-file').value = '';
             document.getElementById('img-preview').innerHTML = `<img src="${p.image}" alt="Preview">`;
@@ -1456,6 +1524,7 @@
             const desc = document.getElementById('m-desc').value.trim();
             const price = Number(document.getElementById('m-price').value);
             const category = document.getElementById('m-category').value;
+            const stock = Math.max(0, parseInt(document.getElementById('m-stock').value) || 0);
             const fileInput = document.getElementById('m-image-file');
             const urlInput = document.getElementById('m-image-url').value.trim();
 
@@ -1476,12 +1545,14 @@
                     products[editingIndex].price = price;
                     products[editingIndex].category = category;
                     products[editingIndex].image = imagePath;
+                    products[editingIndex].stock = stock;
+                    products[editingIndex].inStock = stock > 0;
                     showToast('Product updated!');
                 } else {
                     products.push({
                         id: crypto.randomUUID(),
                         name, description: desc || 'New product', category, price,
-                        image: imagePath, inStock: true
+                        image: imagePath, inStock: stock > 0, stock: stock
                     });
                     showToast('Product added!');
                 }
@@ -1531,6 +1602,8 @@
             siteConfig.deliveryFee = Number(document.getElementById('set-delfee').value) || 0;
             siteConfig.minOrder = Number(document.getElementById('set-minorder').value) || 0;
             siteConfig.announcement = document.getElementById('set-announcement').value.trim();
+            const sheetEl = document.getElementById('set-sheeturl');
+            if (sheetEl) siteConfig.sheetUrl = sheetEl.value.trim();
             markUnsaved();
             renderConfigPreview();
         }
@@ -1605,6 +1678,7 @@
         window.saveProduct = saveProduct;
         window.deleteProduct = deleteProduct;
         window.toggleStock = toggleStock;
+        window.updateStock = updateStock;
         window.toggleAllStock = toggleAllStock;
         window.toggleSidebar = toggleSidebar;
         window.closeSidebar = closeSidebar;
@@ -1620,8 +1694,9 @@
             document.querySelector(`.nav-btn[data-tab="${tab}"]`).classList.add('active');
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById(`tab-${tab}`).classList.add('active');
-            const titles = { overview: 'Dashboard', products: 'Products', settings: 'Settings' };
+            const titles = { overview: 'Dashboard', products: 'Products', settings: 'Settings', orders: 'Orders' };
             document.getElementById('page-title').textContent = titles[tab] || 'Dashboard';
+            if (tab === 'orders') fetchOrders();
             closeSidebar();
         }
 
@@ -1635,6 +1710,75 @@
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 3000);
         }
+
+        // ===== ORDERS FROM GOOGLE SHEET =====
+        let cachedOrders = [];
+
+        async function fetchOrders() {
+            const area = document.getElementById('orders-table-area');
+            if (!siteConfig.sheetUrl) {
+                area.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px;">⚠️ Set your Google Sheet URL in Settings first.</p>';
+                return;
+            }
+            area.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px;">Loading orders...</p>';
+            try {
+                const res = await fetch(siteConfig.sheetUrl);
+                const data = await res.json();
+                if (data.status === 'success' && data.orders) {
+                    cachedOrders = data.orders;
+                    renderOrders();
+                    showToast(`Loaded ${data.orders.length} orders`);
+                } else {
+                    area.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">❌ Failed to load: ' + (data.message || 'Unknown error') + '</p>';
+                }
+            } catch (e) {
+                area.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">❌ Error: ' + e.message + '</p>';
+            }
+        }
+
+        function renderOrders() {
+            const area = document.getElementById('orders-table-area');
+            const q = (document.getElementById('order-search')?.value || '').toLowerCase();
+            let orders = cachedOrders;
+            if (q) {
+                orders = orders.filter(o => {
+                    const searchable = [o['Order ID'], o['Customer Name'], o['Phone'], o['Items']].join(' ').toLowerCase();
+                    return searchable.includes(q);
+                });
+            }
+            if (orders.length === 0) {
+                area.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px;">No orders found.</p>';
+                return;
+            }
+            let html = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">';
+            html += '<thead><tr style="border-bottom:2px solid var(--border);text-align:left;">';
+            html += '<th style="padding:10px 8px;color:var(--accent);">Time</th>';
+            html += '<th style="padding:10px 8px;color:var(--accent);">Order ID</th>';
+            html += '<th style="padding:10px 8px;color:var(--accent);">Customer</th>';
+            html += '<th style="padding:10px 8px;color:var(--accent);">Phone</th>';
+            html += '<th style="padding:10px 8px;color:var(--accent);">Delivery</th>';
+            html += '<th style="padding:10px 8px;color:var(--accent);">Items</th>';
+            html += '<th style="padding:10px 8px;color:var(--accent);text-align:right;">Total</th>';
+            html += '</tr></thead><tbody>';
+            orders.forEach(o => {
+                const delivery = o['Delivery Type'] === 'delivery' ? `🚪 F${o['Floor']} R${o['Room']}` : '🏃 Pickup';
+                html += `<tr style="border-bottom:1px solid var(--border);">`;
+                html += `<td style="padding:10px 8px;white-space:nowrap;color:var(--text-muted);">${o['Timestamp'] || '-'}</td>`;
+                html += `<td style="padding:10px 8px;font-weight:600;">${o['Order ID'] || '-'}</td>`;
+                html += `<td style="padding:10px 8px;">${o['Customer Name'] || '-'}</td>`;
+                html += `<td style="padding:10px 8px;color:var(--text-muted);">${o['Phone'] || '-'}</td>`;
+                html += `<td style="padding:10px 8px;">${delivery}</td>`;
+                html += `<td style="padding:10px 8px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${o['Items'] || ''}">${o['Items'] || '-'}</td>`;
+                html += `<td style="padding:10px 8px;text-align:right;font-weight:700;color:var(--accent);">₹${o['Total'] || 0}</td>`;
+                html += `</tr>`;
+            });
+            html += '</tbody></table></div>';
+            html += `<p style="text-align:center;color:var(--text-dim);font-size:12px;margin-top:16px;">Showing ${orders.length} order${orders.length !== 1 ? 's' : ''}</p>`;
+            area.innerHTML = html;
+        }
+
+        window.fetchOrders = fetchOrders;
+        window.renderOrders = renderOrders;
 
         // Warn on unsaved changes
         window.addEventListener('beforeunload', (e) => {
