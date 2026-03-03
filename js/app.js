@@ -89,7 +89,8 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "drinks",
     "price": 50,
     "image": "images/dietcoke_300ml_45.png",
-    "inStock": false
+    "inStock": true,
+    "stock": 8
   },
   {
     "id": "438137a9-0e2b-4455-8161-ecf04b658cc8",
@@ -116,7 +117,8 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "drinks",
     "price": 110,
     "image": "images/monster_100.png",
-    "inStock": true
+    "inStock": true,
+    "stock": 2
   },
   {
     "id": "73b4b6c6-8d6a-4da9-ab0d-83173d5a1858",
