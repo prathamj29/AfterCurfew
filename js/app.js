@@ -223,8 +223,8 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "beverages",
     "price": 150,
     "image": "images/1772127026454-488.png",
-    "inStock": false,
-    "stock": 0
+    "inStock": true,
+    "stock": 1
   },
   {
     "id": "4cfba65e-e61c-477f-a45c-9cf05b3c7f53",
