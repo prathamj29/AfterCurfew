@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "price": 65,
     "image": "images/wickedgood_manchow_60.png",
     "inStock": true,
-    "stock": 7
+    "stock": 1
   },
   {
     "id": "93e03624-5935-4c73-952b-abed7c8feca2",
@@ -183,8 +183,8 @@ document.addEventListener('DOMContentLoaded', function () {
     "category": "cup-noodles",
     "price": 65,
     "image": "images/1770812350560-333.png",
-    "inStock": false,
-    "stock": 0
+    "inStock": true,
+    "stock": 2
   },
   {
     "id": "9098cf10-617a-4911-8140-c265c94f39f5",
