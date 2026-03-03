@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function () {
     "price": 50,
     "image": "images/1772474598513-36.png",
     "inStock": true,
-    "stock": 10
+    "stock": 2
   },
   {
     "id": "83d9f702-19f9-47f5-9a0b-560cfd3ab899",
