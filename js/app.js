@@ -47,7 +47,8 @@ document.addEventListener('DOMContentLoaded', function () {
   "announcement": "Get FREE delivery above Rs. 200!!!",
   "deliveryFee": 10,
   "minOrder": 0,
-  "pickupLocation": "Room 730"
+  "pickupLocation": "Room 730",
+  "sheetUrl": "https://script.google.com/macros/s/AKfycbyYb-HK6MaLTDaAtLEJ5fsHSHemTZIxjIR6EdHaPu63my-XSVMhCikGjZPw1RDWr7OM/exec"
 };
 
     // --- CONFIGURATION ---
