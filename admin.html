@@ -903,6 +903,85 @@
             color: #fff;
         }
 
+        /* ===== ORDER NOTIFICATION BANNER ===== */
+        .order-notification {
+            position: fixed;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 32px);
+            max-width: 420px;
+            background: linear-gradient(135deg, #064e3b, #065f46);
+            border: 2px solid #34d399;
+            border-radius: 16px;
+            padding: 18px 20px;
+            z-index: 10000;
+            box-shadow: 0 20px 60px rgba(52, 211, 153, 0.3), 0 0 0 1px rgba(52, 211, 153, 0.1);
+            transition: top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+        }
+
+        .order-notification.show {
+            top: 16px;
+        }
+
+        .order-notification .notif-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .order-notification .notif-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #34d399;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .order-notification .notif-time {
+            font-size: 11px;
+            color: #6ee7b7;
+            opacity: 0.7;
+        }
+
+        .order-notification .notif-body {
+            font-size: 13px;
+            color: #d1fae5;
+            line-height: 1.5;
+        }
+
+        .order-notification .notif-amount {
+            font-size: 20px;
+            font-weight: 800;
+            color: #fff;
+            margin-top: 8px;
+        }
+
+        .notif-pulse {
+            width: 10px;
+            height: 10px;
+            background: #34d399;
+            border-radius: 50%;
+            animation: notifPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes notifPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(1.3);
+            }
+        }
+
         /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
             .sidebar {
@@ -1267,6 +1346,98 @@
                 font-size: 13px;
                 padding: 10px 16px;
             }
+
+            /* Store toggle section */
+            #store-toggle-section>div,
+            #notif-toggle-section>div {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+            }
+
+            #store-toggle-section>div>div:last-child,
+            #notif-toggle-section>div>div:last-child {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            #store-status-badge,
+            #notif-status-badge {
+                font-size: 12px !important;
+                padding: 5px 12px !important;
+            }
+
+            /* Notification banner on mobile */
+            .order-notification {
+                width: calc(100% - 20px);
+                max-width: none;
+                padding: 14px 16px;
+                border-radius: 12px;
+            }
+
+            .order-notification .notif-amount {
+                font-size: 18px;
+            }
+
+            /* Daily summary grid */
+            #daily-summary-content>div {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+            }
+
+            #daily-summary-content>div>div {
+                padding: 12px !important;
+            }
+
+            #daily-summary-content>div>div>div:first-child {
+                font-size: 18px !important;
+            }
+
+            #daily-summary-content>div>div>div:last-child {
+                font-size: 11px !important;
+            }
+
+            /* Best sellers list */
+            #best-sellers-content>div {
+                padding: 8px 0 !important;
+                gap: 8px !important;
+            }
+
+            #best-sellers-content>div>span:first-child {
+                font-size: 16px !important;
+                width: 24px !important;
+            }
+
+            #best-sellers-content>div>img {
+                width: 30px !important;
+                height: 30px !important;
+            }
+
+            #best-sellers-content>div>div:last-child>div:first-child {
+                font-size: 13px !important;
+            }
+
+            #best-sellers-content>div>div:last-child>div:last-child {
+                font-size: 10px !important;
+            }
+
+            /* Quick action buttons - wrap better */
+            .settings-section>div[style*="display:flex"] {
+                gap: 8px !important;
+            }
+
+            .settings-section>div[style*="display:flex"] .btn-add {
+                flex: 1 1 calc(50% - 4px);
+                justify-content: center;
+                font-size: 12px;
+                padding: 10px 8px;
+            }
+
+            /* Config preview */
+            #config-preview p {
+                font-size: 12px !important;
+                line-height: 1.6;
+            }
         }
 
         /* Small phones */
@@ -1313,6 +1484,43 @@
 
             .toggle input:checked+.slider::before {
                 transform: translateX(18px);
+            }
+
+            .settings-section {
+                padding: 12px;
+            }
+
+            .settings-section h3 {
+                font-size: 14px;
+            }
+
+            .section-desc {
+                font-size: 11px !important;
+            }
+
+            /* Daily summary - single column on tiny phones */
+            #daily-summary-content>div {
+                grid-template-columns: 1fr 1fr !important;
+            }
+
+            #daily-summary-content>div>div>div:first-child {
+                font-size: 16px !important;
+            }
+
+            /* Best sellers - even tighter */
+            #best-sellers-content>div>img {
+                display: none !important;
+            }
+
+            /* Store toggle */
+            #store-status-text {
+                font-size: 11px !important;
+            }
+
+            /* Quick actions - stack fully */
+            .settings-section>div[style*="display:flex"] .btn-add {
+                flex: 1 1 100%;
+                font-size: 12px;
             }
         }
 
@@ -1390,6 +1598,7 @@
 
     <div id="toast">Saved!</div>
 
+
     <!-- ===== LOGIN SCREEN ===== -->
     <div id="login-screen">
         <div class="login-card">
@@ -1450,6 +1659,11 @@
                                 <div class="stat-value" id="stat-revenue">0</div>
                                 <div class="stat-label">Total Revenue</div>
                             </div>
+                            <div class="stat-card" style="border: 2px solid #34d399;">
+                                <div class="stat-icon">💹</div>
+                                <div class="stat-value" id="stat-profit" style="color:#34d399;">0</div>
+                                <div class="stat-label">Total Profit</div>
+                            </div>
                             <div class="stat-card" style="border: 2px solid var(--accent);">
                                 <div class="stat-icon">🛍️</div>
                                 <div class="stat-value" id="stat-sales">0</div>
@@ -1481,6 +1695,71 @@
                                 <div class="stat-label">Categories</div>
                             </div>
                         </div>
+
+                        <!-- Order Notifications Toggle -->
+                        <div class="settings-section" id="notif-toggle-section"
+                            style="border:2px solid var(--border);border-color:var(--accent);">
+                            <div
+                                style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                                <div>
+                                    <h3 style="margin-bottom:4px;">🔔 Order Notifications</h3>
+                                    <p class="section-desc" style="margin:0;" id="notif-status-text">Enable to get
+                                        alerts when new orders arrive</p>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <span id="notif-status-badge"
+                                        style="padding:6px 14px;border-radius:99px;font-size:13px;font-weight:700;background:#2a0a0a;color:#f87171;">●
+                                        OFF</span>
+                                    <label class="toggle" style="width:52px;height:28px;"
+                                        title="Toggle order notifications">
+                                        <input type="checkbox" id="notif-toggle" onchange="toggleNotifications()">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Store Open/Close Toggle -->
+                        <div class="settings-section" id="store-toggle-section" style="border:2px solid var(--border);">
+                            <div
+                                style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                                <div>
+                                    <h3 style="margin-bottom:4px;">🏪 Store Status</h3>
+                                    <p class="section-desc" style="margin:0;" id="store-status-text">Store is currently
+                                        open</p>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <span id="store-status-badge"
+                                        style="padding:6px 14px;border-radius:99px;font-size:13px;font-weight:700;background:#064e3b;color:#34d399;">●
+                                        OPEN</span>
+                                    <label class="toggle" style="width:52px;height:28px;"
+                                        title="Toggle store open/close">
+                                        <input type="checkbox" id="store-open-toggle" checked
+                                            onchange="toggleStoreOpen()">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Daily Summary Card -->
+                        <div class="settings-section" id="daily-summary-section">
+                            <h3>🧾 Tonight's Summary</h3>
+                            <p class="section-desc">Auto-generated summary from today's orders.</p>
+                            <div id="daily-summary-content" style="margin-top:12px;">
+                                <p style="color:var(--text-dim);font-size:13px;">Loading order data...</p>
+                            </div>
+                        </div>
+
+                        <!-- Best Sellers Ranking -->
+                        <div class="settings-section" id="best-sellers-section">
+                            <h3>🏆 Best Sellers</h3>
+                            <p class="section-desc">Top selling products based on order history.</p>
+                            <div id="best-sellers-content" style="margin-top:12px;">
+                                <p style="color:var(--text-dim);font-size:13px;">Loading order data...</p>
+                            </div>
+                        </div>
+
                         <div class="settings-section">
                             <h3>Quick Actions</h3>
                             <p class="section-desc">Common tasks you can perform quickly.</p>
@@ -1596,7 +1875,14 @@
                 <input type="text" id="m-desc" placeholder="Classic Maggi, 2-minute preparation">
             </div>
             <div class="form-group" style="display:flex;gap:12px;">
-                <div style="flex:1"><label>Price (₹)</label><input type="number" id="m-price" placeholder="60"></div>
+                <div style="flex:1"><label>Selling Price (₹)</label><input type="number" id="m-price" placeholder="60">
+                </div>
+                <div style="flex:1"><label>Cost Price (₹)</label><input type="number" id="m-costprice"
+                        placeholder="40"><span
+                        style="font-size:11px;color:var(--text-dim);margin-top:2px;display:block">Only visible to
+                        admin</span></div>
+            </div>
+            <div class="form-group" style="display:flex;gap:12px;">
                 <div style="flex:1">
                     <label>Category</label>
                     <select id="m-category">
@@ -1720,6 +2006,7 @@
             renderProductList();
             renderSettings();
             renderConfigPreview();
+            renderStoreToggle();
         }
 
         function renderStats() {
@@ -1776,7 +2063,8 @@
                 <div class="p-details">
                     <div class="p-name">${p.name}</div>
                     <div class="p-meta">
-                        <span>₹${p.price}</span>
+                        <span>₹${p.price}${p.costPrice ? ` <span style="color:var(--text-dim);font-size:11px;">(cost: ₹${p.costPrice})</span>` : ''}</span>
+                        <span style="color:${p.costPrice ? ((p.price - p.costPrice) > 0 ? '#34d399' : '#f87171') : 'var(--text-dim)'};font-weight:600;">${p.costPrice ? '↗ ₹' + (p.price - p.costPrice) + ' profit' : 'No cost set'}</span>
                         <span style="color:${stockColor};font-weight:600;">${stockLabel}</span>
                         <span>${p.category}</span>
                     </div>
@@ -1891,6 +2179,7 @@
             document.getElementById('m-name').value = '';
             document.getElementById('m-desc').value = '';
             document.getElementById('m-price').value = '';
+            document.getElementById('m-costprice').value = '';
             document.getElementById('m-category').value = 'cup-noodles';
             document.getElementById('m-stock').value = '10';
             document.getElementById('m-image-url').value = '';
@@ -1910,6 +2199,7 @@
             document.getElementById('m-name').value = p.name;
             document.getElementById('m-desc').value = p.description;
             document.getElementById('m-price').value = p.price;
+            document.getElementById('m-costprice').value = p.costPrice || '';
             document.getElementById('m-category').value = p.category;
             document.getElementById('m-stock').value = typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0);
             document.getElementById('m-image-url').value = p.image;
@@ -1992,6 +2282,7 @@
             const name = document.getElementById('m-name').value.trim();
             const desc = document.getElementById('m-desc').value.trim();
             const price = Number(document.getElementById('m-price').value);
+            const costPrice = Number(document.getElementById('m-costprice').value) || 0;
             const category = document.getElementById('m-category').value;
             const stock = Math.max(0, parseInt(document.getElementById('m-stock').value) || 0);
             const fileInput = document.getElementById('m-image-file');
@@ -2012,6 +2303,7 @@
                     products[editingIndex].name = name;
                     products[editingIndex].description = desc || 'New product';
                     products[editingIndex].price = price;
+                    products[editingIndex].costPrice = costPrice;
                     products[editingIndex].category = category;
                     products[editingIndex].image = imagePath;
                     products[editingIndex].stock = stock;
@@ -2019,7 +2311,7 @@
                 } else {
                     products.push({
                         id: crypto.randomUUID(),
-                        name, description: desc || 'New product', category, price,
+                        name, description: desc || 'New product', category, price, costPrice,
                         image: imagePath, inStock: stock > 0, stock: stock
                     });
                 }
@@ -2082,6 +2374,162 @@
             renderConfigPreview();
         }
 
+        // ===== STORE OPEN/CLOSE =====
+        function renderStoreToggle() {
+            const toggle = document.getElementById('store-open-toggle');
+            const badge = document.getElementById('store-status-badge');
+            const text = document.getElementById('store-status-text');
+            const section = document.getElementById('store-toggle-section');
+            const isOpen = siteConfig.storeOpen !== false; // Default to open
+            if (toggle) toggle.checked = isOpen;
+            if (badge) {
+                badge.textContent = isOpen ? '● OPEN' : '● CLOSED';
+                badge.style.background = isOpen ? '#064e3b' : '#2a0a0a';
+                badge.style.color = isOpen ? '#34d399' : '#f87171';
+            }
+            if (text) text.textContent = isOpen ? 'Store is currently open — customers can place orders' : 'Store is currently closed — customers see a closed message';
+            if (section) section.style.borderColor = isOpen ? '#34d399' : '#f87171';
+        }
+
+        async function toggleStoreOpen() {
+            const isOpen = document.getElementById('store-open-toggle').checked;
+            siteConfig.storeOpen = isOpen;
+            renderStoreToggle();
+            try {
+                await fetch(`${FB_URL}/siteConfig/storeOpen.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(isOpen)
+                });
+                showToast(isOpen ? '🏪 Store opened!' : '🔒 Store closed!');
+            } catch (e) {
+                showToast('Failed to update store status', true);
+            }
+        }
+
+        // ===== DAILY SUMMARY & BEST SELLERS =====
+        function parseOrderItems(orders) {
+            const itemCounts = {};
+            orders.forEach(o => {
+                const items = (o['Items'] || '').split(', ');
+                items.forEach(itemStr => {
+                    const match = itemStr.match(/^(.+?)\s*×\s*(\d+)/);
+                    if (match) {
+                        const name = match[1].trim();
+                        const qty = parseInt(match[2]) || 0;
+                        itemCounts[name] = (itemCounts[name] || 0) + qty;
+                    }
+                });
+            });
+            return itemCounts;
+        }
+
+        function renderDailySummary() {
+            const el = document.getElementById('daily-summary-content');
+            if (!el || cachedOrders.length === 0) {
+                if (el) el.innerHTML = '<p style="color:var(--text-dim);font-size:13px;">No order data available. Refresh orders or set up Google Sheet in Settings.</p>';
+                return;
+            }
+
+            // Filter today's orders (match by date string in Timestamp)
+            const today = new Date();
+            const todayStr = today.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const todayOrders = cachedOrders.filter(o => {
+                const ts = o['Timestamp'] || '';
+                // Try multiple date formats
+                return ts.includes(todayStr) || ts.includes(today.toLocaleDateString()) || ts.includes(today.toISOString().split('T')[0]);
+            });
+
+            const orderCount = todayOrders.length;
+            const revenue = todayOrders.reduce((s, o) => s + (parseFloat(o['Total']) || 0), 0);
+
+            // Calculate today's profit
+            let profit = 0;
+            const itemCounts = parseOrderItems(todayOrders);
+            Object.entries(itemCounts).forEach(([name, qty]) => {
+                const product = products.find(p => p.name === name);
+                if (product && product.costPrice) {
+                    profit += (product.price - product.costPrice) * qty;
+                } else if (product) {
+                    profit += product.price * qty;
+                }
+            });
+
+            // Find top item today
+            const topItem = Object.entries(itemCounts).sort((a, b) => b[1] - a[1])[0];
+
+            if (orderCount === 0) {
+                el.innerHTML = `
+                    <div style="text-align:center;padding:20px;color:var(--text-dim);">
+                        <div style="font-size:32px;margin-bottom:8px;">🌙</div>
+                        <p style="font-size:14px;margin:0;">No orders tonight yet</p>
+                        <p style="font-size:12px;margin-top:4px;">Orders will appear here once customers start ordering</p>
+                    </div>`;
+                return;
+            }
+
+            el.innerHTML = `
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:12px;">
+                    <div style="background:var(--bg);border-radius:var(--radius-sm);padding:16px;text-align:center;">
+                        <div style="font-size:24px;font-weight:800;color:var(--accent);">📋 ${orderCount}</div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Orders Tonight</div>
+                    </div>
+                    <div style="background:var(--bg);border-radius:var(--radius-sm);padding:16px;text-align:center;">
+                        <div style="font-size:24px;font-weight:800;color:var(--accent);">₹${revenue}</div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Revenue Tonight</div>
+                    </div>
+                    <div style="background:var(--bg);border-radius:var(--radius-sm);padding:16px;text-align:center;">
+                        <div style="font-size:24px;font-weight:800;color:#34d399;">₹${profit}</div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Profit Tonight</div>
+                    </div>
+                    <div style="background:var(--bg);border-radius:var(--radius-sm);padding:16px;text-align:center;">
+                        <div style="font-size:24px;font-weight:800;color:var(--accent);">🔥 ${topItem ? topItem[1] : 0}</div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Top: ${topItem ? topItem[0] : '-'}</div>
+                    </div>
+                </div>`;
+        }
+
+        function renderBestSellers() {
+            const el = document.getElementById('best-sellers-content');
+            if (!el || cachedOrders.length === 0) {
+                if (el) el.innerHTML = '<p style="color:var(--text-dim);font-size:13px;">No order data available. Refresh orders or set up Google Sheet in Settings.</p>';
+                return;
+            }
+
+            const itemCounts = parseOrderItems(cachedOrders);
+            const sorted = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+            if (sorted.length === 0) {
+                el.innerHTML = '<p style="color:var(--text-dim);font-size:13px;">No sales data yet.</p>';
+                return;
+            }
+
+            const maxCount = sorted[0][1];
+            const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+            el.innerHTML = sorted.map(([name, count], i) => {
+                const product = products.find(p => p.name === name);
+                const pct = Math.round((count / maxCount) * 100);
+                const profitPerUnit = product && product.costPrice ? (product.price - product.costPrice) : (product ? product.price : 0);
+                return `
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i < sorted.length - 1 ? 'border-bottom:1px solid var(--border);' : ''}">
+                        <span style="font-size:20px;width:32px;text-align:center;flex-shrink:0;">${medals[i]}</span>
+                        ${product ? `<img src="${product.image}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;background:#000;flex-shrink:0;" onerror="this.style.display='none'">` : ''}
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+                            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                                <div style="flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;">
+                                    <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--accent),#34d399);border-radius:3px;transition:width 0.5s ease;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="text-align:right;flex-shrink:0;">
+                            <div style="font-size:15px;font-weight:700;color:var(--accent);">${count} sold</div>
+                            <div style="font-size:11px;color:#34d399;">₹${profitPerUnit * count} profit</div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
         // ===== PUBLISH =====
         async function pushChanges() {
             const btn = document.getElementById('publish-btn');
@@ -2130,6 +2578,9 @@
         window.pushChanges = pushChanges;
         window.onSettingChange = onSettingChange;
         window.renderProductList = renderProductList;
+        window.toggleStoreOpen = toggleStoreOpen;
+        window.renderDailySummary = renderDailySummary;
+        window.renderBestSellers = renderBestSellers;
 
         function switchTab(tab) {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -2173,15 +2624,39 @@
                     const totalSales = cachedOrders.length;
                     const totalRevenue = cachedOrders.reduce((sum, o) => sum + (parseFloat(o['Total']) || 0), 0);
 
+                    // Calculate profit from orders
+                    let totalProfit = 0;
+                    cachedOrders.forEach(o => {
+                        const items = (o['Items'] || '').split(', ');
+                        items.forEach(itemStr => {
+                            const match = itemStr.match(/^(.+?)\s*×\s*(\d+)/);
+                            if (match) {
+                                const itemName = match[1].trim();
+                                const qty = parseInt(match[2]) || 0;
+                                const product = products.find(p => p.name === itemName);
+                                if (product && product.costPrice) {
+                                    totalProfit += (product.price - product.costPrice) * qty;
+                                } else if (product) {
+                                    totalProfit += product.price * qty;
+                                }
+                            }
+                        });
+                    });
+
                     const revEl = document.getElementById('stat-revenue');
                     const salesEl = document.getElementById('stat-sales');
+                    const profitEl = document.getElementById('stat-profit');
                     if (revEl) revEl.textContent = '₹' + totalRevenue;
                     if (salesEl) salesEl.textContent = totalSales;
+                    if (profitEl) profitEl.textContent = '₹' + totalProfit;
 
                     if (!silent) {
                         renderOrders();
                         showToast(`Loaded ${data.orders.length} orders`);
                     }
+                    // Always update dashboard sections
+                    renderDailySummary();
+                    renderBestSellers();
                 } else {
                     if (!silent && area) area.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">❌ Failed to load: ' + (data.message || 'Unknown error') + '</p>';
                 }
@@ -2233,6 +2708,213 @@
 
         window.fetchOrders = fetchOrders;
         window.renderOrders = renderOrders;
+
+        // ===== ORDER NOTIFICATION SYSTEM =====
+        let notificationsEnabled = false;
+        let notifPollInterval = null;
+        let lastKnownOrderCount = -1; // -1 = not yet initialized
+        let audioCtx = null;
+
+        function toggleNotifications() {
+            const toggle = document.getElementById('notif-toggle');
+            notificationsEnabled = toggle.checked;
+
+            const badge = document.getElementById('notif-status-badge');
+            const text = document.getElementById('notif-status-text');
+            const section = document.getElementById('notif-toggle-section');
+
+            if (notificationsEnabled) {
+                // Request browser notification permission
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+
+                // Initialize audio context on user gesture
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                // Set baseline count so first poll doesn't trigger notification
+                lastKnownOrderCount = cachedOrders.length;
+
+                // Start polling every 30 seconds
+                startNotifPolling();
+
+                badge.textContent = '● LIVE';
+                badge.style.background = '#064e3b';
+                badge.style.color = '#34d399';
+                text.textContent = 'Checking for new orders every 30 seconds';
+                section.style.borderColor = '#34d399';
+                showToast('🔔 Notifications enabled! Polling every 30s');
+            } else {
+                stopNotifPolling();
+
+                badge.textContent = '● OFF';
+                badge.style.background = '#2a0a0a';
+                badge.style.color = '#f87171';
+                text.textContent = 'Enable to get alerts when new orders arrive';
+                section.style.borderColor = 'var(--border)';
+                showToast('🔕 Notifications disabled');
+            }
+        }
+
+        function startNotifPolling() {
+            stopNotifPolling();
+            notifPollInterval = setInterval(pollForNewOrders, 30000);
+        }
+
+        function stopNotifPolling() {
+            if (notifPollInterval) {
+                clearInterval(notifPollInterval);
+                notifPollInterval = null;
+            }
+        }
+
+        async function pollForNewOrders() {
+            if (!notificationsEnabled || !siteConfig.sheetUrl) return;
+
+            try {
+                const res = await fetch(siteConfig.sheetUrl);
+                const data = await res.json();
+
+                if (data.status === 'success' && data.orders) {
+                    const newCount = data.orders.length;
+                    const prevCount = lastKnownOrderCount;
+
+                    if (prevCount >= 0 && newCount > prevCount) {
+                        // New orders detected!
+                        const newOrders = data.orders.slice(prevCount);
+                        newOrders.forEach(order => notifyNewOrder(order));
+                    }
+
+                    // Update cached data
+                    cachedOrders = data.orders;
+                    lastKnownOrderCount = newCount;
+
+                    // Refresh stats silently
+                    const totalSales = cachedOrders.length;
+                    const totalRevenue = cachedOrders.reduce((sum, o) => sum + (parseFloat(o['Total']) || 0), 0);
+                    const revEl = document.getElementById('stat-revenue');
+                    const salesEl = document.getElementById('stat-sales');
+                    if (revEl) revEl.textContent = '₹' + totalRevenue;
+                    if (salesEl) salesEl.textContent = totalSales;
+
+                    renderDailySummary();
+                    renderBestSellers();
+                }
+            } catch (e) {
+                console.warn('Notification poll failed:', e);
+            }
+        }
+
+        function notifyNewOrder(order) {
+            const name = order['Customer Name'] || 'Unknown';
+            const total = order['Total'] || '0';
+            const items = order['Items'] || 'Unknown items';
+            const orderId = order['Order ID'] || '';
+            const delivery = order['Delivery Type'] === 'delivery'
+                ? `🚪 Floor ${order['Floor']}, Room ${order['Room']}`
+                : '🏃 Pickup';
+
+            // 1. Play audio chime
+            playNotificationChime();
+
+            // 2. Browser notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const notif = new Notification('🛒 New Order! ' + orderId, {
+                    body: `${name} ordered ₹${total}\n${items}\n${delivery}`,
+                    icon: 'images/logo.png',
+                    tag: 'order-' + orderId,
+                    requireInteraction: true,
+                    vibrate: [200, 100, 200, 100, 200]
+                });
+                notif.onclick = () => {
+                    window.focus();
+                    switchTab('orders');
+                    notif.close();
+                };
+            }
+
+            // 3. In-app notification banner
+            showOrderBanner(order);
+        }
+
+        function playNotificationChime() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            const ctx = audioCtx;
+            const now = ctx.currentTime;
+
+            // Pleasant 3-note chime: C5 → E5 → G5
+            const notes = [523.25, 659.25, 783.99];
+            notes.forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = freq;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0, now + i * 0.15);
+                gain.gain.linearRampToValueAtTime(0.3, now + i * 0.15 + 0.05);
+                gain.gain.linearRampToValueAtTime(0, now + i * 0.15 + 0.4);
+                osc.start(now + i * 0.15);
+                osc.stop(now + i * 0.15 + 0.5);
+            });
+        }
+
+        function showOrderBanner(order) {
+            // Remove existing banner
+            const existing = document.getElementById('order-notif-banner');
+            if (existing) existing.remove();
+
+            const name = order['Customer Name'] || 'Unknown';
+            const total = order['Total'] || '0';
+            const items = order['Items'] || '';
+            const orderId = order['Order ID'] || '';
+            const delivery = order['Delivery Type'] === 'delivery'
+                ? `🚪 F${order['Floor']} R${order['Room']}`
+                : '🏃 Pickup';
+            const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+            const banner = document.createElement('div');
+            banner.id = 'order-notif-banner';
+            banner.className = 'order-notification';
+            banner.onclick = () => {
+                banner.classList.remove('show');
+                setTimeout(() => banner.remove(), 500);
+                switchTab('orders');
+                fetchOrders();
+            };
+            banner.innerHTML = `
+                <div class="notif-header">
+                    <div class="notif-title"><div class="notif-pulse"></div> New Order!</div>
+                    <div class="notif-time">${time}</div>
+                </div>
+                <div class="notif-body">
+                    <strong>${name}</strong> • ${orderId}<br>
+                    ${items}<br>
+                    ${delivery}
+                </div>
+                <div class="notif-amount">₹${total}</div>
+            `;
+            document.body.appendChild(banner);
+
+            // Animate in
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => banner.classList.add('show'));
+            });
+
+            // Auto-dismiss after 15 seconds
+            setTimeout(() => {
+                if (banner.parentNode) {
+                    banner.classList.remove('show');
+                    setTimeout(() => banner.remove(), 500);
+                }
+            }, 15000);
+        }
+
+        window.toggleNotifications = toggleNotifications;
 
         // Warn on unsaved changes
         window.addEventListener('beforeunload', (e) => {

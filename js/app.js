@@ -61,10 +61,34 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data) {
                 if (data.siteConfig) siteConfig = data.siteConfig;
                 if (data.products) products = data.products;
-                renderProducts(); // Re-render with live data
+                renderProducts();
+                checkStoreStatus();
             }
         } catch (e) {
             console.error("Failed to load Firebase data:", e);
+        }
+    }
+
+    // Check if store is open/closed
+    function checkStoreStatus() {
+        const existing = document.getElementById('store-closed-overlay');
+        if (existing) existing.remove();
+
+        if (siteConfig.storeOpen === false) {
+            const overlay = document.createElement('div');
+            overlay.id = 'store-closed-overlay';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px;';
+            overlay.innerHTML = `
+                <div style="text-align:center;max-width:360px;">
+                    <div style="font-size:64px;margin-bottom:16px;">🌙</div>
+                    <h2 style="font-size:24px;font-weight:800;color:#f0f0f0;margin-bottom:8px;">We're Closed</h2>
+                    <p style="color:#999;font-size:15px;line-height:1.5;margin-bottom:16px;">AfterCurfew is currently not taking orders. Come back during delivery hours!</p>
+                    <div style="background:#1a1a1a;border-radius:12px;padding:16px;border:1px solid #333;">
+                        <div style="font-size:13px;color:#888;margin-bottom:4px;">⏰ Delivery Hours</div>
+                        <div style="font-size:18px;font-weight:700;color:#6ee7b7;">${siteConfig.deliveryHours || '10 PM - 3 AM'}</div>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
         }
     }
 
@@ -411,6 +435,69 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             summary.innerHTML = html;
         }
+
+        // Render upsell suggestions
+        renderUpsell();
+    }
+
+    // --- UPSELL AT CHECKOUT ---
+    function renderUpsell() {
+        const section = document.getElementById('upsell-section');
+        if (!section || cart.length === 0) { if (section) section.innerHTML = ''; return; }
+
+        const cartNames = cart.map(i => i.name);
+        const available = products.filter(p => {
+            const stock = typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0);
+            return stock > 0 && !cartNames.includes(p.name);
+        });
+
+        if (available.length === 0) { section.innerHTML = ''; return; }
+
+        // Pick up to 3 random products
+        const shuffled = available.sort(() => 0.5 - Math.random());
+        const suggestions = shuffled.slice(0, 3);
+
+        let html = '<div style="border-top:1px solid var(--dark-surface);padding-top:14px;margin-top:4px;">';
+        html += '<div style="font-size:12px;color:var(--gray-400);margin-bottom:10px;font-weight:600;">⚡ Quick add something extra?</div>';
+        html += '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">';
+
+        suggestions.forEach(p => {
+            html += `<div class="upsell-item" data-name="${p.name}" data-price="${p.price}" style="
+                flex:0 0 auto;display:flex;align-items:center;gap:8px;
+                background:var(--dark-surface);border:1px solid transparent;
+                border-radius:10px;padding:8px 12px;cursor:pointer;
+                transition:border-color 0.2s,transform 0.15s;
+                min-width:0;max-width:180px;
+            ">
+                <img src="${p.image}" alt="" style="width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">
+                <div style="min-width:0;flex:1;">
+                    <div style="font-size:12px;font-weight:600;color:var(--soft-white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
+                    <div style="font-size:11px;color:var(--accent);font-weight:700;">${formatCurrency(p.price)}</div>
+                </div>
+                <div style="font-size:18px;color:var(--accent);font-weight:700;flex-shrink:0;">+</div>
+            </div>`;
+        });
+
+        html += '</div></div>';
+        section.innerHTML = html;
+
+        // Add click listeners
+        section.querySelectorAll('.upsell-item').forEach(item => {
+            item.addEventListener('click', function () {
+                const name = this.dataset.name;
+                const price = this.dataset.price;
+                addToCart(name, price);
+                this.style.borderColor = 'var(--accent)';
+                this.style.transform = 'scale(0.95)';
+                const plus = this.querySelector('div:last-child');
+                if (plus) plus.textContent = '✓';
+                setTimeout(() => {
+                    this.style.opacity = '0.5';
+                    this.style.pointerEvents = 'none';
+                }, 300);
+                updateCheckoutTotal();
+            });
+        });
     }
 
     // --- WHATSAPP CHECKOUT ---
@@ -521,10 +608,16 @@ document.addEventListener('DOMContentLoaded', function () {
         renderProducts();
 
         // Clear cart and close
+        const lastOrderItems = [...cart];
+        const lastOrderTotal = total;
+        const lastOrderId = orderId;
         cart = [];
         saveCart();
         updateCartUI();
         hideModal(checkoutModal);
+
+        // Generate share card content
+        generateShareCard(lastOrderItems, lastOrderTotal, lastOrderId);
         showModal(confirmationModal);
     });
 
@@ -555,6 +648,48 @@ document.addEventListener('DOMContentLoaded', function () {
     checkoutButton.addEventListener('click', () => { hideModal(cartModal); showModal(checkoutModal); });
     closeCheckoutButton.addEventListener('click', () => hideModal(checkoutModal));
     continueShoppingButton.addEventListener('click', () => hideModal(confirmationModal));
+
+    // --- SHAREABLE ORDER CARD ---
+    function generateShareCard(items, total, orderId) {
+        const content = document.getElementById('share-card-content');
+        if (!content) return;
+
+        const itemList = items.map(i => `${i.name} × ${i.quantity}`).join(', ');
+        const emojis = ['🍜', '🔥', '😋', '🌙', '✨', '🎉'];
+        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+        const shareText = `${randomEmoji} Just ordered from AfterCurfew! 🌙\n\n🛒 ${itemList}\n💰 Total: ${formatCurrency(total)}\n\nLate-night cravings sorted! Order yours at aftercurfew.in`;
+
+        content.textContent = shareText;
+        content.dataset.shareText = shareText;
+    }
+
+    // Share on WhatsApp
+    const shareWhatsappBtn = document.getElementById('share-whatsapp');
+    if (shareWhatsappBtn) {
+        shareWhatsappBtn.addEventListener('click', function () {
+            const content = document.getElementById('share-card-content');
+            const text = content?.dataset.shareText || '';
+            if (text) {
+                window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+            }
+        });
+    }
+
+    // Copy to clipboard
+    const shareCopyBtn = document.getElementById('share-copy');
+    if (shareCopyBtn) {
+        shareCopyBtn.addEventListener('click', function () {
+            const content = document.getElementById('share-card-content');
+            const text = content?.dataset.shareText || '';
+            if (text && navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    this.textContent = '✅ Copied!';
+                    setTimeout(() => this.textContent = '📋 Copy to Clipboard', 2000);
+                });
+            }
+        });
+    }
 
     // Nav
     navToggle.addEventListener('click', () => {
