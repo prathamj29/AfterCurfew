@@ -2446,13 +2446,14 @@
             const revenue = todayOrders.reduce((s, o) => s + (parseFloat(o['Total']) || 0), 0);
 
             // Calculate today's profit
+            let profit = 0;
             // Just sum the calculatedProfit we already put on cachedOrders
             todayOrders.forEach(o => {
                 profit += o.calculatedProfit || 0;
             });
+            const itemCounts = parseOrderItems(todayOrders);
             // Fallback for when data initially loads or calculatedProfit isn't set yet somehow
             if (profit === 0) {
-                const itemCounts = parseOrderItems(todayOrders);
                 Object.entries(itemCounts).forEach(([name, qty]) => {
                     const product = products.find(p => p.name === name);
                     if (product && product.costPrice) {
