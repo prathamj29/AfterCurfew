@@ -2414,9 +2414,11 @@
                 const items = (o['Items'] || '').split(', ');
                 items.forEach(itemStr => {
                     const match = itemStr.match(/^(.+?)\s*×\s*(\d+)/);
-                    if (match) {
-                        const name = match[1].trim();
-                        const qty = parseInt(match[2]) || 0;
+                    const matchFallback = itemStr.match(/^(.+?)\s*x\s*(\d+)/i);
+                    const actualMatch = match || matchFallback;
+                    if (actualMatch) {
+                        const name = actualMatch[1].trim();
+                        const qty = parseInt(actualMatch[2]) || 0;
                         itemCounts[name] = (itemCounts[name] || 0) + qty;
                     }
                 });
@@ -2444,16 +2446,20 @@
             const revenue = todayOrders.reduce((s, o) => s + (parseFloat(o['Total']) || 0), 0);
 
             // Calculate today's profit
-            let profit = 0;
-            const itemCounts = parseOrderItems(todayOrders);
-            Object.entries(itemCounts).forEach(([name, qty]) => {
-                const product = products.find(p => p.name === name);
-                if (product && product.costPrice) {
-                    profit += (product.price - product.costPrice) * qty;
-                } else if (product) {
-                    profit += product.price * qty;
-                }
+            // Just sum the calculatedProfit we already put on cachedOrders
+            todayOrders.forEach(o => {
+                profit += o.calculatedProfit || 0;
             });
+            // Fallback for when data initially loads or calculatedProfit isn't set yet somehow
+            if (profit === 0) {
+                const itemCounts = parseOrderItems(todayOrders);
+                Object.entries(itemCounts).forEach(([name, qty]) => {
+                    const product = products.find(p => p.name === name);
+                    if (product && product.costPrice) {
+                        profit += (product.price - product.costPrice) * qty;
+                    }
+                });
+            }
 
             // Find top item today
             const topItem = Object.entries(itemCounts).sort((a, b) => b[1] - a[1])[0];
@@ -2509,7 +2515,7 @@
             el.innerHTML = sorted.map(([name, count], i) => {
                 const product = products.find(p => p.name === name);
                 const pct = Math.round((count / maxCount) * 100);
-                const profitPerUnit = product && product.costPrice ? (product.price - product.costPrice) : (product ? product.price : 0);
+                const profitPerUnit = product && product.costPrice ? (product.price - product.costPrice) : 0;
                 return `
                     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i < sorted.length - 1 ? 'border-bottom:1px solid var(--border);' : ''}">
                         <span style="font-size:20px;width:32px;text-align:center;flex-shrink:0;">${medals[i]}</span>
@@ -2624,23 +2630,26 @@
                     const totalSales = cachedOrders.length;
                     const totalRevenue = cachedOrders.reduce((sum, o) => sum + (parseFloat(o['Total']) || 0), 0);
 
-                    // Calculate profit from orders
+                    // Calculate profit from orders purely client-side
                     let totalProfit = 0;
                     cachedOrders.forEach(o => {
+                        let orderProfit = 0;
                         const items = (o['Items'] || '').split(', ');
                         items.forEach(itemStr => {
-                            const match = itemStr.match(/^(.+?)\s*×\s*(\d+)/);
-                            if (match) {
-                                const itemName = match[1].trim();
-                                const qty = parseInt(match[2]) || 0;
+                            const match = itemStr.match(/^(.+?)\s*×\s*(\d+)/); // Handle ' × ' format
+                            const matchFallback = itemStr.match(/^(.+?)\s*x\s*(\d+)/i); // Handle ' x ' or ' X ' format (legacy)
+                            const actualMatch = match || matchFallback;
+                            if (actualMatch) {
+                                const itemName = actualMatch[1].trim();
+                                const qty = parseInt(actualMatch[2]) || 0;
                                 const product = products.find(p => p.name === itemName);
                                 if (product && product.costPrice) {
-                                    totalProfit += (product.price - product.costPrice) * qty;
-                                } else if (product) {
-                                    totalProfit += product.price * qty;
+                                    orderProfit += (product.price - product.costPrice) * qty;
                                 }
                             }
                         });
+                        o.calculatedProfit = orderProfit;
+                        totalProfit += orderProfit;
                     });
 
                     const revEl = document.getElementById('stat-revenue');
@@ -2688,6 +2697,7 @@
             html += '<th style="padding:10px 8px;color:var(--accent);">Delivery</th>';
             html += '<th style="padding:10px 8px;color:var(--accent);">Items</th>';
             html += '<th style="padding:10px 8px;color:var(--accent);text-align:right;">Total</th>';
+            html += '<th style="padding:10px 8px;color:#34d399;text-align:right;">Profit</th>';
             html += '</tr></thead><tbody>';
             orders.forEach(o => {
                 const delivery = o['Delivery Type'] === 'delivery' ? `🚪 F${o['Floor']} R${o['Room']}` : '🏃 Pickup';
@@ -2699,6 +2709,7 @@
                 html += `<td style="padding:10px 8px;">${delivery}</td>`;
                 html += `<td style="padding:10px 8px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${o['Items'] || ''}">${o['Items'] || '-'}</td>`;
                 html += `<td style="padding:10px 8px;text-align:right;font-weight:700;color:var(--accent);">₹${o['Total'] || 0}</td>`;
+                html += `<td style="padding:10px 8px;text-align:right;font-weight:600;color:#34d399;">₹${o.calculatedProfit || 0}</td>`;
                 html += `</tr>`;
             });
             html += '</tbody></table></div>';
@@ -2791,13 +2802,35 @@
                     cachedOrders = data.orders;
                     lastKnownOrderCount = newCount;
 
-                    // Refresh stats silently
+                    // Refresh stats silently (including profit)
                     const totalSales = cachedOrders.length;
                     const totalRevenue = cachedOrders.reduce((sum, o) => sum + (parseFloat(o['Total']) || 0), 0);
+                    let totalProfit = 0;
+                    cachedOrders.forEach(o => {
+                        let orderProfit = 0;
+                        const items = (o['Items'] || '').split(', ');
+                        items.forEach(itemStr => {
+                            const match = itemStr.match(/^(.+?)\s*×\s*(\d+)/); // Handle ' × ' format
+                            const matchFallback = itemStr.match(/^(.+?)\s*x\s*(\d+)/i); // Handle ' x ' or ' X ' format (legacy)
+                            const actualMatch = match || matchFallback;
+                            if (actualMatch) {
+                                const itemName = actualMatch[1].trim();
+                                const qty = parseInt(actualMatch[2]) || 0;
+                                const product = products.find(p => p.name === itemName);
+                                if (product && product.costPrice) {
+                                    orderProfit += (product.price - product.costPrice) * qty;
+                                }
+                            }
+                        });
+                        o.calculatedProfit = orderProfit;
+                        totalProfit += orderProfit;
+                    });
                     const revEl = document.getElementById('stat-revenue');
                     const salesEl = document.getElementById('stat-sales');
+                    const profitEl = document.getElementById('stat-profit');
                     if (revEl) revEl.textContent = '₹' + totalRevenue;
                     if (salesEl) salesEl.textContent = totalSales;
+                    if (profitEl) profitEl.textContent = '₹' + totalProfit;
 
                     renderDailySummary();
                     renderBestSellers();
