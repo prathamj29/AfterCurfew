@@ -2433,13 +2433,57 @@
                 return;
             }
 
-            // Filter today's orders (match by date string in Timestamp)
-            const today = new Date();
-            const todayStr = today.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            // Filter today's orders for the current night shift (from 12:00 PM to 12:00 PM next day)
+            // This ensures orders placed after midnight correctly group with "tonight"
+            const now = new Date();
+            const shiftStart = new Date();
+            if (now.getHours() < 12) {
+                shiftStart.setDate(shiftStart.getDate() - 1);
+            }
+            shiftStart.setHours(12, 0, 0, 0);
+            const shiftStartMs = shiftStart.getTime();
+
             const todayOrders = cachedOrders.filter(o => {
-                const ts = o['Timestamp'] || '';
-                // Try multiple date formats
-                return ts.includes(todayStr) || ts.includes(today.toLocaleDateString()) || ts.includes(today.toISOString().split('T')[0]);
+                const tsStr = o['Timestamp'] || '';
+                if (!tsStr) return false;
+
+                // Try to parse the format (DD/MM/YYYY, h:mm:ss a) manually to be safe
+                let ts = 0;
+                if (tsStr.includes('T') && tsStr.includes('Z')) {
+                    ts = new Date(tsStr).getTime();
+                } else {
+                    const parts = tsStr.split(',');
+                    const dParts = parts[0].trim().split(/[\/\-]/);
+                    if (dParts.length === 3) {
+                        let d = parseInt(dParts[0]);
+                        let m = parseInt(dParts[1]) - 1;
+                        let y = parseInt(dParts[2]);
+                        if (y < 2000 && d >= 2000) { let temp = y; y = d; d = temp; }
+
+                        let h = 0, min = 0, s = 0;
+                        if (parts.length > 1) {
+                            const timeStr = parts[1].trim().toLowerCase();
+                            const tParts = timeStr.replace(/[ap]m/, '').trim().split(':');
+                            if (tParts.length >= 2) {
+                                h = parseInt(tParts[0]);
+                                min = parseInt(tParts[1]);
+                                if (timeStr.includes('pm') && h < 12) h += 12;
+                                if (timeStr.includes('am') && h === 12) h = 0;
+                            }
+                        }
+                        ts = new Date(y, m, d, h, min, s).getTime();
+                    } else {
+                        ts = new Date(tsStr).getTime() || 0;
+                    }
+                }
+
+                // Fallback direct string match if parsing failed completely
+                if (!ts || isNaN(ts)) {
+                    const todayStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    return tsStr.includes(todayStr) || tsStr.includes(now.toISOString().split('T')[0]);
+                }
+
+                return ts >= shiftStartMs;
             });
 
             const orderCount = todayOrders.length;
