@@ -2408,18 +2408,24 @@
         }
 
         // ===== DAILY SUMMARY & BEST SELLERS =====
+        function parseSingleItem(itemStr) {
+            let cleaned = itemStr.replace(/\([^)]+\)$/, '').trim();
+            const match = cleaned.match(/(.+?)\s*[x×]\s*(\d+)$/i);
+            if (match) {
+                return { name: match[1].trim(), qty: parseInt(match[2], 10) || 1 };
+            }
+            return { name: cleaned, qty: 1 };
+        }
+
         function parseOrderItems(orders) {
             const itemCounts = {};
             orders.forEach(o => {
                 const items = (o['Items'] || '').split(', ');
                 items.forEach(itemStr => {
-                    const match = itemStr.match(/^(.+?)\s*×\s*(\d+)/);
-                    const matchFallback = itemStr.match(/^(.+?)\s*x\s*(\d+)/i);
-                    const actualMatch = match || matchFallback;
-                    if (actualMatch) {
-                        const name = actualMatch[1].trim();
-                        const qty = parseInt(actualMatch[2]) || 0;
-                        itemCounts[name] = (itemCounts[name] || 0) + qty;
+                    if (!itemStr.trim()) return;
+                    const parsed = parseSingleItem(itemStr);
+                    if (parsed.name) {
+                        itemCounts[parsed.name] = (itemCounts[parsed.name] || 0) + parsed.qty;
                     }
                 });
             });
@@ -2530,7 +2536,7 @@
                         <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Revenue Tonight</div>
                     </div>
                     <div style="background:var(--bg);border-radius:var(--radius-sm);padding:16px;text-align:center;">
-                        <div style="font-size:24px;font-weight:800;color:#34d399;">₹${profit}</div>
+                        <div style="font-size:24px;font-weight:800;color:#34d399;">₹${Math.round(profit * 100) / 100}</div>
                         <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Profit Tonight</div>
                     </div>
                     <div style="background:var(--bg);border-radius:var(--radius-sm);padding:16px;text-align:center;">
@@ -2575,7 +2581,7 @@
                         </div>
                         <div style="text-align:right;flex-shrink:0;">
                             <div style="font-size:15px;font-weight:700;color:var(--accent);">${count} sold</div>
-                            <div style="font-size:11px;color:#34d399;">₹${profitPerUnit * count} profit</div>
+                            <div style="font-size:11px;color:#34d399;">₹${Math.round(profitPerUnit * count * 100) / 100} profit</div>
                         </div>
                     </div>`;
             }).join('');
@@ -2681,15 +2687,12 @@
                         let orderProfit = 0;
                         const items = (o['Items'] || '').split(', ');
                         items.forEach(itemStr => {
-                            const match = itemStr.match(/^(.+?)\s*×\s*(\d+)/); // Handle ' × ' format
-                            const matchFallback = itemStr.match(/^(.+?)\s*x\s*(\d+)/i); // Handle ' x ' or ' X ' format (legacy)
-                            const actualMatch = match || matchFallback;
-                            if (actualMatch) {
-                                const itemName = actualMatch[1].trim();
-                                const qty = parseInt(actualMatch[2]) || 0;
-                                const product = products.find(p => p.name === itemName);
+                            if (!itemStr.trim()) return;
+                            const parsed = parseSingleItem(itemStr);
+                            if (parsed.name) {
+                                const product = products.find(p => p.name === parsed.name);
                                 if (product && product.costPrice) {
-                                    orderProfit += (product.price - product.costPrice) * qty;
+                                    orderProfit += (product.price - product.costPrice) * parsed.qty;
                                 }
                             }
                         });
@@ -2702,7 +2705,7 @@
                     const profitEl = document.getElementById('stat-profit');
                     if (revEl) revEl.textContent = '₹' + totalRevenue;
                     if (salesEl) salesEl.textContent = totalSales;
-                    if (profitEl) profitEl.textContent = '₹' + totalProfit;
+                    if (profitEl) profitEl.textContent = '₹' + Math.round(totalProfit * 100) / 100;
 
                     if (!silent) {
                         renderOrders();
@@ -2753,8 +2756,9 @@
                 html += `<td style="padding:10px 8px;color:var(--text-muted);">${o['Phone'] || '-'}</td>`;
                 html += `<td style="padding:10px 8px;">${delivery}</td>`;
                 html += `<td style="padding:10px 8px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${o['Items'] || ''}">${o['Items'] || '-'}</td>`;
+                const displayProfit = Math.round((o.calculatedProfit || 0) * 100) / 100;
                 html += `<td style="padding:10px 8px;text-align:right;font-weight:700;color:var(--accent);">₹${o['Total'] || 0}</td>`;
-                html += `<td style="padding:10px 8px;text-align:right;font-weight:600;color:#34d399;">₹${o.calculatedProfit || 0}</td>`;
+                html += `<td style="padding:10px 8px;text-align:right;font-weight:600;color:#34d399;">₹${displayProfit}</td>`;
                 html += `</tr>`;
             });
             html += '</tbody></table></div>';
@@ -2855,15 +2859,12 @@
                         let orderProfit = 0;
                         const items = (o['Items'] || '').split(', ');
                         items.forEach(itemStr => {
-                            const match = itemStr.match(/^(.+?)\s*×\s*(\d+)/); // Handle ' × ' format
-                            const matchFallback = itemStr.match(/^(.+?)\s*x\s*(\d+)/i); // Handle ' x ' or ' X ' format (legacy)
-                            const actualMatch = match || matchFallback;
-                            if (actualMatch) {
-                                const itemName = actualMatch[1].trim();
-                                const qty = parseInt(actualMatch[2]) || 0;
-                                const product = products.find(p => p.name === itemName);
+                            if (!itemStr.trim()) return;
+                            const parsed = parseSingleItem(itemStr);
+                            if (parsed.name) {
+                                const product = products.find(p => p.name === parsed.name);
                                 if (product && product.costPrice) {
-                                    orderProfit += (product.price - product.costPrice) * qty;
+                                    orderProfit += (product.price - product.costPrice) * parsed.qty;
                                 }
                             }
                         });
@@ -2875,7 +2876,7 @@
                     const profitEl = document.getElementById('stat-profit');
                     if (revEl) revEl.textContent = '₹' + totalRevenue;
                     if (salesEl) salesEl.textContent = totalSales;
-                    if (profitEl) profitEl.textContent = '₹' + totalProfit;
+                    if (profitEl) profitEl.textContent = '₹' + Math.round(totalProfit * 100) / 100;
 
                     renderDailySummary();
                     renderBestSellers();
