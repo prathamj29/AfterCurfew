@@ -2489,7 +2489,8 @@
                     return tsStr.includes(todayStr) || tsStr.includes(now.toISOString().split('T')[0]);
                 }
 
-                return ts >= shiftStartMs;
+                const shiftEndMs = shiftStartMs + (24 * 60 * 60 * 1000);
+                return ts >= shiftStartMs && ts < shiftEndMs;
             });
 
             const orderCount = todayOrders.length;
