@@ -151,6 +151,8 @@ function renderProducts() {
         ? '<span class="card-stock-badge low">Only ' + info.stock + ' left</span>'
         : ''
 
+    const promoBadgeHtml = getProductPromoBadge(product)
+
     card.innerHTML = `
       <div class="card-image-wrap">
         <img src="${product.image}" alt="${product.name}" loading="lazy" />
@@ -160,6 +162,7 @@ function renderProducts() {
           </svg>
         </button>
         ${badgeHtml}
+        ${promoBadgeHtml}
         ${!info.sold ? '<button class="card-add" data-name="' + product.name + '" data-price="' + product.price + '" aria-label="Quick add ' + product.name + '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>' : ''}
       </div>
       <div class="card-body">
@@ -256,6 +259,7 @@ function renderCartSheet() {
     `
     cartSubtotal.textContent = formatPrice(0)
     checkoutBtn.disabled = true
+    renderCartPromoBanner()
     return
   }
 
@@ -309,6 +313,7 @@ function renderCartSheet() {
       updateCartFab()
     })
   })
+  renderCartPromoBanner()
 }
 
 function openCartSheet() {
@@ -461,16 +466,20 @@ function reorderItems(itemsStr) {
 }
 
 // --- Checkout ---
-function openCheckout() {
-  appliedPromo = null
+function openCheckout(prefillCode) {
+  if (!prefillCode) appliedPromo = null
   const statusEl = $('promo-status')
   if (statusEl) { statusEl.textContent = ''; statusEl.className = 'promo-status' }
   const inputEl = $('promo-code')
-  if (inputEl) inputEl.value = ''
+  if (inputEl) inputEl.value = prefillCode || ''
   closeCartSheet()
   checkoutModal.classList.add('open')
   bodyLock(true)
-  renderCheckoutSummary()
+  if (prefillCode) {
+    applyPromoCode()
+  } else {
+    renderCheckoutSummary()
+  }
 }
 
 function closeCheckout() {
@@ -1039,6 +1048,92 @@ function renderPromoSuggestions() {
   `
 }
 
+// --- Promo Publicity ---
+function getProductPromoBadge(product) {
+  if (!product.promos || product.promos.length === 0) return ''
+  for (const code of product.promos) {
+    const promo = promoCodes[code]
+    if (!promo || promo.active === false) continue
+    const label = promo.type === 'percent' ? `${promo.value}% OFF` :
+      promo.type === 'flat' ? `₹${promo.value} OFF` :
+      `FREE ${(promo.itemName || '').toUpperCase().slice(0, 6)}`
+    return `<span class="card-promo-badge">${label}</span>`
+  }
+  return ''
+}
+
+function renderPromoPublicity() {
+  const stripInner = $('promo-strip-inner')
+  const promoStrip = $('promo-strip')
+  if (!stripInner) return
+
+  const activeCodes = Object.entries(promoCodes).filter(([, p]) => p.active !== false)
+  promoStrip.classList.toggle('hidden', activeCodes.length === 0)
+
+  if (activeCodes.length === 0) {
+    stripInner.innerHTML = ''
+    return
+  }
+
+  const cardsHtml = activeCodes.map(([code, promo]) => {
+    const label = promo.type === 'percent' ? `${promo.value}% Off` :
+      promo.type === 'flat' ? `₹${promo.value} Off` :
+      `Free ${promo.itemName || 'Item'}`
+    const desc = promo.description || label
+    const minStr = promo.minOrder ? `Min. order ₹${promo.minOrder}` : 'No minimum'
+    return `<div class="promo-card" onclick="autoApplyPromo('${code}')">
+      <div class="promo-card-code">${code}</div>
+      <div class="promo-card-desc">${desc}</div>
+      <div class="promo-card-min">${minStr}</div>
+    </div>`
+  }).join('')
+
+  stripInner.innerHTML = cardsHtml + cardsHtml
+  const speed = Math.max(15, activeCodes.length * 6)
+  stripInner.style.setProperty('--marquee-duration', `${speed}s`)
+}
+
+function renderCartPromoBanner() {
+  const banner = $('cart-promo-banner')
+  if (!banner) return
+  const items = getCart()
+  if (items.length === 0 || appliedPromo) { banner.classList.add('hidden'); return }
+
+  const subtotal = getSubtotal()
+  for (const [code, promo] of Object.entries(promoCodes)) {
+    if (promo.active === false) continue
+    if (subtotal < (promo.minOrder || 0)) continue
+    let eligible = false
+    if (promo.type === 'free_item') {
+      const freeProduct = products.find(p => p.name.toLowerCase() === (promo.itemName || '').toLowerCase())
+      if (freeProduct) {
+        const stock = typeof freeProduct.stock === 'number' ? freeProduct.stock : (freeProduct.inStock ? 10 : 0)
+        if (stock > 0) eligible = true
+      }
+    } else {
+      eligible = items.some(item => {
+        const product = products.find(p => p.name === item.name)
+        return product && product.promos && product.promos.includes(code)
+      })
+    }
+    if (!eligible) continue
+
+    const label = promo.type === 'percent' ? `${promo.value}% off` :
+      promo.type === 'flat' ? `₹${promo.value} off` :
+      `Free ${promo.itemName || 'item'}`
+    banner.innerHTML = `
+      <span class="cart-promo-text">Save more! Use <strong>${code}</strong> and get ${label}</span>
+      <button class="cart-promo-btn" onclick="autoApplyPromo('${code}')">Apply</button>`
+    banner.classList.remove('hidden')
+    return
+  }
+  banner.classList.add('hidden')
+}
+
+window.autoApplyPromo = (code) => {
+  openCheckout(code)
+}
+
 window.applyPromoCode = applyPromoCode
 window.removePromo = removePromo
 window.applyPromoCodeBySuggestion = (code) => {
@@ -1055,6 +1150,7 @@ async function loadData() {
       fetchFirebaseData(),
       fetchPromoCodes(),
     ])
+    promoCodes = codes || {}
     if (data) {
       if (data.siteConfig) siteConfig = data.siteConfig
       if (data.products) products = data.products
@@ -1062,7 +1158,7 @@ async function loadData() {
       renderCategories()
       checkStoreStatus()
     }
-    promoCodes = codes || {}
+    renderPromoPublicity()
   } catch (e) {
     console.error('Failed to load Firebase data:', e)
   }
