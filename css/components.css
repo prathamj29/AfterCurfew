@@ -171,21 +171,16 @@
 
 /* ===== PROMO STRIP ===== */
 .promo-strip {
-  padding: 0 16px 12px;
+  padding: 0 0 12px;
   overflow: hidden;
-  mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+  position: relative;
 }
 
 .promo-strip-inner {
-  display: flex;
+  display: inline-flex;
   gap: 10px;
-  width: max-content;
-  animation: marquee var(--marquee-duration, 20s) linear infinite;
-}
-
-.promo-strip:hover .promo-strip-inner {
-  animation-play-state: paused;
+  padding: 0 16px;
+  animation: marquee 40s linear infinite;
 }
 
 @keyframes marquee {
@@ -1974,9 +1969,10 @@
     font-size: 36px;
   }
   .promo-strip {
-    padding: 0 24px 16px;
-    mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
-    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+    padding: 0 0 16px;
+  }
+  .promo-strip-inner {
+    padding: 0 24px;
   }
   .category-container {
     padding: 0 24px 20px;

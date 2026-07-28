@@ -1048,6 +1048,8 @@ function renderPromoSuggestions() {
   `
 }
 
+
+
 // --- Promo Publicity ---
 function getProductPromoBadge(product) {
   if (!product.promos || product.promos.length === 0) return ''
@@ -1089,8 +1091,6 @@ function renderPromoPublicity() {
   }).join('')
 
   stripInner.innerHTML = cardsHtml + cardsHtml
-  const speed = Math.max(15, activeCodes.length * 6)
-  stripInner.style.setProperty('--marquee-duration', `${speed}s`)
 }
 
 function renderCartPromoBanner() {
