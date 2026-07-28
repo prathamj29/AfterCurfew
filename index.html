@@ -1,304 +1,264 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AfterCurfew - Late Night Delivery</title>
-    <meta name="description" content="Order late night snacks and drinks for delivery">
-
-    <!-- PWA & Mobile Optimizations -->
-    <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="AfterCurfew">
-
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="apple-touch-icon" href="favicon.svg">
-    <link rel="manifest" href="manifest.json">
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>AfterCurfew — Late Night Delivery</title>
+  <meta name="description" content="Late night snacks and drinks delivered to your room" />
+  <meta name="theme-color" content="#0a0a0f" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="AfterCurfew" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="apple-touch-icon" href="favicon.svg" />
+  <link rel="manifest" href="manifest.json" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
 </head>
-
 <body>
-    <!-- Enhanced Header with Navigation -->
-    <header class="app-header">
-        <div class="header-main">
-            <button class="nav-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-            </button>
-            <h1 class="app-title logo-container" id="logo">
-                <span class="logo-text">AfterCurfew</span>
-                <span class="logo-icon">🌙</span>
-            </h1>
-            <!-- Removed Account Button -->
-        </div>
-
-        <!-- Side Navigation -->
-        <nav class="side-nav" id="side-nav" aria-label="Main navigation" hidden>
-            <div class="nav-header">
-                <h2 class="nav-title">Menu</h2>
-                <button class="nav-close" id="nav-close" aria-label="Close menu">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-            <ul class="nav-list">
-                <li><a href="#" class="nav-link active" data-page="home" aria-label="Home page">Home</a></li>
-                <li><a href="#" class="nav-link" data-page="orders" aria-label="My Orders">My Orders</a></li>
-                <!-- Can now view without login -->
-                <li><a href="#" class="nav-link" data-page="favorites" aria-label="Favorites">Favorites</a></li>
-                <!-- Removed Account Link -->
-            </ul>
-            <!-- New Theme Selector Section in Side Nav -->
-            <div class="nav-theme-section">
-                <h3 class="nav-theme-title">Theme</h3>
-                <div class="nav-theme-selector">
-                    <label class="nav-theme-option">
-                        <input type="radio" name="nav-theme" value="dark" id="nav-theme-dark" checked>
-                        <span class="nav-theme-label">Dark Theme</span>
-                    </label>
-                    <label class="nav-theme-option">
-                        <input type="radio" name="nav-theme" value="colorful" id="nav-theme-colorful">
-                        <span class="nav-theme-label">Colorful Theme</span>
-                    </label>
-                    <label class="nav-theme-option">
-                        <input type="radio" name="nav-theme" value="avengers" id="nav-theme-avengers">
-                        <span class="nav-theme-label">Avengers Theme</span>
-                    </label>
-                    <label class="nav-theme-option">
-                        <input type="radio" name="nav-theme" value="barbie" id="nav-theme-barbie">
-                        <span class="nav-theme-label">Barbie Theme</span>
-                    </label>
-                </div>
-            </div>
-            <!-- End Theme Selector Section -->
-            <div class="nav-footer">
-                <!-- Removed Logout Button -->
-            </div>
-        </nav>
-
-        <!-- Overlay for side navigation -->
-        <div class="nav-overlay" id="nav-overlay" aria-hidden="true" hidden></div>
-    </header>
-
-    <!-- Search Bar -->
-    <div class="search-container">
-        <div class="search-bar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                aria-hidden="true">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="search" id="search-input" placeholder="Search products..." aria-label="Search products">
-        </div>
+  <!-- Closed Overlay -->
+  <div id="closed-overlay" class="closed-overlay hidden">
+    <div class="closed-content">
+      <svg class="hero-moon" viewBox="0 0 64 64" fill="none">
+        <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="1.5" opacity="0.2"/>
+        <path d="M36 12c-1.5 0-3 .2-4.4.6 5.8 2.4 9.9 8 9.9 14.6 0 8.7-7 15.8-15.7 15.8-3.2 0-6.2-1-8.6-2.6C20 47.6 26.3 52 33.6 52 43.2 52 51 44.2 51 34.6 51 22.8 44.4 12 36 12z" fill="currentColor"/>
+      </svg>
+      <h2 class="closed-title">We're Closed</h2>
+      <p class="closed-desc">AfterCurfew is currently not taking orders. Come back during delivery hours!</p>
+      <div class="closed-hours">
+        <div class="closed-hours-label">Delivery Hours</div>
+        <div class="closed-hours-value" id="closed-hours">12 AM — 3 AM</div>
+      </div>
     </div>
+  </div>
 
-    <!-- Category Pills -->
-    <div class="category-container" role="tablist" aria-label="Product categories">
-        <button class="category-pill active" role="tab" data-category="all" aria-selected="true"
-            aria-controls="all-products">All Items</button>
-        <button class="category-pill" role="tab" data-category="cup-noodles" aria-selected="false"
-            aria-controls="cup-noodles-products">Cup Noodles</button>
-        <button class="category-pill" role="tab" data-category="instant-noodles" aria-selected="false"
-            aria-controls="instant-noodles-products">Instant Noodles</button>
-        <button class="category-pill" role="tab" data-category="beverages" aria-selected="false"
-            aria-controls="beverages-products">Beverages</button>
-        <button class="category-pill" role="tab" data-category="chocolates" aria-selected="false"
-            aria-controls="chocolates-products">Chocolates</button>
-        <button class="category-pill" role="tab" data-category="snacks" aria-selected="false"
-            aria-controls="snacks-products">Snacks</button>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <svg class="logo-icon" viewBox="0 0 64 64" fill="none">
+          <path d="M36 12c-1.5 0-3 .2-4.4.6 5.8 2.4 9.9 8 9.9 14.6 0 8.7-7 15.8-15.7 15.8-3.2 0-6.2-1-8.6-2.6C20 47.6 26.3 52 33.6 52 43.2 52 51 44.2 51 34.6 51 22.8 44.4 12 36 12z" fill="currentColor"/>
+        </svg>
+        <span class="logo-text">aftercurfew</span>
+      </a>
+      <div class="header-actions">
+        <button id="search-toggle" class="icon-button" aria-label="Toggle search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+      </div>
     </div>
+    <div id="search-container" class="search-container">
+      <div class="search-bar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="search" id="search-input" placeholder="Search products..." autocomplete="off" />
+        <button id="search-close" class="search-close" aria-label="Clear search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
 
-    <!-- Product Grid - Rendered dynamically by app.js -->
+  <!-- Home Tab Content -->
+  <div id="home-content" class="tab-content active">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-content">
+        <svg class="hero-moon" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="1.5" opacity="0.15"/>
+          <path d="M36 12c-1.5 0-3 .2-4.4.6 5.8 2.4 9.9 8 9.9 14.6 0 8.7-7 15.8-15.7 15.8-3.2 0-6.2-1-8.6-2.6C20 47.6 26.3 52 33.6 52 43.2 52 51 44.2 51 34.6 51 22.8 44.4 12 36 12z" fill="currentColor"/>
+        </svg>
+        <h1 class="hero-title">Late night cravings,<br/>delivered.</h1>
+        <div class="hero-badge" id="hero-badge">🌙 Open 12 AM — 3 AM</div>
+      </div>
+    </section>
+
+    <!-- Category Tabs -->
+    <div id="category-container" class="category-container"></div>
+
+    <!-- Products -->
     <main class="main-content">
-        <div class="product-grid" id="product-grid" role="tabpanel"></div>
+      <div id="product-grid" class="product-grid"></div>
     </main>
+  </div>
 
-    <!-- Cart Bar -->
-    <div id="cart-bar" class="cart-bar hidden" aria-label="Shopping cart">
-        <div class="cart-info">
-            <span class="cart-label">Cart</span>
-            <span id="cart-total" class="cart-total">₹0</span>
-        </div>
-        <button id="view-cart" class="view-cart-button" aria-label="View shopping cart">View Cart</button>
+  <!-- Favorites Tab Content -->
+  <div id="favorites-content" class="tab-content hidden">
+    <div class="section-header"><h2>Favorites</h2></div>
+    <div id="fav-list" class="section-body"></div>
+  </div>
+
+  <!-- Orders Tab Content -->
+  <div id="orders-content" class="tab-content hidden">
+    <div class="section-header"><h2>My Orders</h2></div>
+    <div id="orders-list" class="section-body"></div>
+  </div>
+
+  <!-- Product Detail Bottom Sheet -->
+  <div id="detail-sheet" class="bottom-sheet">
+    <div id="detail-overlay" class="sheet-overlay"></div>
+    <div class="sheet-content">
+      <div class="sheet-handle"></div>
+      <div id="detail-content"></div>
     </div>
+  </div>
 
-    <!-- Cart Modal -->
-    <div id="cart-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title">
-        <div class="modal-overlay"></div>
-        <div class="modal-content cart-modal">
-            <div class="modal-header">
-                <h2 id="cart-modal-title">Your Cart</h2>
-                <button id="close-cart" class="close-button" aria-label="Close cart">&times;</button>
-            </div>
-            <div id="cart-items" class="cart-items">
-                <p class="empty-cart">Your cart is empty</p>
-            </div>
-            <div class="cart-footer">
-                <div class="total-row">
-                    <span>Total:</span>
-                    <span id="modal-total">₹0</span>
-                </div>
-                <button id="checkout-button" class="checkout-button" aria-label="Proceed to checkout">Checkout</button>
-            </div>
+  <!-- Cart FAB -->
+  <button id="cart-fab" class="cart-fab hidden" aria-label="View cart">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+    </svg>
+    <span id="cart-count" class="cart-count">0</span>
+  </button>
+
+  <!-- Cart Bottom Sheet -->
+  <div id="cart-sheet" class="bottom-sheet">
+    <div id="cart-overlay" class="sheet-overlay"></div>
+    <div class="sheet-content">
+      <div class="sheet-handle"></div>
+      <div class="cart-sheet-header">
+        <h2 class="cart-sheet-title">Your Cart</h2>
+        <button id="cart-clear" class="cart-clear" aria-label="Clear cart">Clear</button>
+      </div>
+      <div id="cart-list" class="cart-list"></div>
+      <div class="cart-footer">
+        <div class="cart-subtotal">
+          <span>Subtotal</span>
+          <span id="cart-subtotal">₹0</span>
         </div>
+        <button id="checkout-btn" class="checkout-btn" disabled>Proceed to Checkout</button>
+      </div>
     </div>
+  </div>
 
-    <!-- Checkout Modal -->
-    <div id="checkout-modal" class="modal hidden" role="dialog" aria-modal="true"
-        aria-labelledby="checkout-modal-title">
-        <div class="modal-overlay"></div>
-        <div class="modal-content checkout-modal">
-            <div class="modal-header">
-                <h2 id="checkout-modal-title">Checkout</h2>
-                <button id="close-checkout" class="close-button" aria-label="Close checkout form">&times;</button>
-            </div>
-            <form id="checkout-form" class="checkout-form" novalidate>
-                <div class="form-group">
-                    <label for="name">Full Name</label>
-                    <input type="text" id="name" name="name" required placeholder="Your name"
-                        aria-describedby="name-error">
-                    <div id="name-error" class="error-message" role="alert" aria-live="polite"></div>
-                </div>
-                <div class="form-group">
-                    <label for="phone">Phone Number</label>
-                    <input type="tel" id="phone" name="phone" required placeholder="+91 98765 43210"
-                        aria-describedby="phone-error">
-                    <div id="phone-error" class="error-message" role="alert" aria-live="polite"></div>
-                </div>
-
-                <!-- Delivery Option -->
-                <div class="form-group">
-                    <label>How would you like to get your order?</label>
-                    <div class="delivery-options" id="delivery-options">
-                        <label class="delivery-option">
-                            <input type="radio" name="delivery-type" value="pickup" id="delivery-pickup" checked>
-                            <div class="delivery-option-card">
-                                <span class="delivery-option-icon">🏃</span>
-                                <div class="delivery-option-info">
-                                    <span class="delivery-option-title">Pickup from Room 730</span>
-                                    <span class="delivery-option-desc">Free — come collect your order</span>
-                                </div>
-                            </div>
-                        </label>
-                        <label class="delivery-option">
-                            <input type="radio" name="delivery-type" value="delivery" id="delivery-room">
-                            <div class="delivery-option-card">
-                                <span class="delivery-option-icon">🚪</span>
-                                <div class="delivery-option-info">
-                                    <span class="delivery-option-title">Deliver to my room</span>
-                                    <span class="delivery-option-desc">+₹10 delivery charge</span>
-                                </div>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Room details (only for delivery) -->
-                <div id="delivery-details" style="display:none;">
-                    <div class="form-group">
-                        <label for="floor">Floor Number</label>
-                        <input type="text" id="floor" name="floor" placeholder="e.g., 3rd floor"
-                            aria-describedby="floor-error">
-                        <div id="floor-error" class="error-message" role="alert" aria-live="polite"></div>
-                    </div>
-                    <div class="form-group">
-                        <label for="room">Room Number</label>
-                        <input type="text" id="room" name="room" placeholder="e.g., Room 305"
-                            aria-describedby="room-error">
-                        <div id="room-error" class="error-message" role="alert" aria-live="polite"></div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="instructions">Special Instructions (Optional)</label>
-                    <textarea id="instructions" name="instructions" placeholder="Any special requests..."></textarea>
-                </div>
-                <div class="form-footer">
-                    <div id="order-summary" class="order-summary"></div>
-                    <div id="upsell-section" style="margin-bottom:16px;"></div>
-                    <button type="submit" class="submit-button">Place Order — <span
-                            id="checkout-total">₹0</span></button>
-                </div>
-            </form>
+  <!-- Checkout Modal -->
+  <div id="checkout-modal" class="modal">
+    <div id="checkout-overlay" class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">Checkout</h2>
+        <button id="close-checkout" class="modal-close" aria-label="Close checkout">×</button>
+      </div>
+      <form id="checkout-form">
+        <div class="form-group">
+          <label class="form-label" for="name">Full Name</label>
+          <input class="form-input" type="text" id="name" name="name" required placeholder="Your name" />
+          <div id="name-error" class="form-error"></div>
         </div>
-    </div>
-
-    <!-- Confirmation Modal -->
-    <div id="confirmation-modal" class="modal hidden" role="dialog" aria-modal="true"
-        aria-labelledby="confirmation-title">
-        <div class="modal-overlay"></div>
-        <div class="modal-content confirmation-modal">
-            <div class="confirmation-content">
-                <div class="checkmark" aria-hidden="true">✓</div>
-                <h2 id="confirmation-title">Order Confirmed!</h2>
-                <p>Your order #<span id="order-id-display">AC12345</span> has been placed. We'll deliver it shortly.
-                </p>
-                <div id="share-card"
-                    style="background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:16px;margin-bottom:20px;text-align:left;">
-                    <div style="font-size:12px;color:#888;margin-bottom:8px;">📸 Share your order</div>
-                    <div id="share-card-content" style="font-size:13px;color:#ccc;line-height:1.6;"></div>
-                    <button id="share-whatsapp" type="button"
-                        style="margin-top:12px;width:100%;background:#25d366;color:#fff;border:none;border-radius:8px;padding:12px 16px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                            <path
-                                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                        </svg>
-                        Share on WhatsApp
-                    </button>
-                    <button id="share-copy" type="button"
-                        style="margin-top:8px;width:100%;background:transparent;color:#888;border:1px solid #444;border-radius:8px;padding:10px 16px;font-size:13px;cursor:pointer;">📋
-                        Copy to Clipboard</button>
+        <div class="form-group">
+          <label class="form-label" for="phone">Phone Number</label>
+          <input class="form-input" type="tel" id="phone" name="phone" required placeholder="+91 98765 43210" />
+          <div id="phone-error" class="form-error"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Delivery</label>
+          <div class="delivery-options" id="delivery-options">
+            <label class="delivery-option">
+              <input type="radio" name="delivery-type" value="pickup" checked />
+              <div class="delivery-card">
+                <span class="delivery-card-icon">🏃</span>
+                <div class="delivery-card-info">
+                  <div class="delivery-card-title">Pickup from Room 730</div>
+                  <div class="delivery-card-desc">Free — come collect your order</div>
                 </div>
-                <button id="continue-shopping" class="continue-button" aria-label="Continue shopping">Continue
-                    Shopping</button>
-            </div>
+              </div>
+            </label>
+            <label class="delivery-option">
+              <input type="radio" name="delivery-type" value="delivery" />
+              <div class="delivery-card">
+                <span class="delivery-card-icon">🚪</span>
+                <div class="delivery-card-info">
+                  <div class="delivery-card-title">Deliver to my room</div>
+                  <div class="delivery-card-desc">+₹10 delivery charge</div>
+                </div>
+              </div>
+            </label>
+          </div>
         </div>
-    </div>
-
-    <!-- Favorites Modal -->
-    <div id="favorites-modal" class="modal hidden" role="dialog" aria-modal="true"
-        aria-labelledby="favorites-modal-title">
-        <div class="modal-overlay"></div>
-        <div class="modal-content favorites-modal">
-            <div class="modal-header">
-                <h2 id="favorites-modal-title">Your Favorites</h2>
-                <button id="close-favorites" class="close-button" aria-label="Close favorites">&times;</button>
-            </div>
-            <div id="favorites-items" class="favorites-items">
-                <p class="empty-favorites">You haven't added any favorites yet</p>
-            </div>
+        <div id="delivery-details" style="display:none;">
+          <div class="form-group">
+            <label class="form-label" for="floor">Floor Number</label>
+            <input class="form-input" type="text" id="floor" placeholder="e.g., 3rd floor" />
+            <div id="floor-error" class="form-error"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="room">Room Number</label>
+            <input class="form-input" type="text" id="room" placeholder="e.g., Room 305" />
+            <div id="room-error" class="form-error"></div>
+          </div>
         </div>
-    </div>
-
-    <!-- My Orders Modal -->
-    <div id="orders-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="orders-modal-title">
-        <div class="modal-overlay"></div>
-        <div class="modal-content orders-modal">
-            <div class="modal-header">
-                <h2 id="orders-modal-title">My Orders</h2>
-                <button id="close-orders" class="close-button" aria-label="Close orders modal">&times;</button>
-            </div>
-            <div id="orders-list" class="orders-list">
-                <p class="empty-orders">You have no orders yet.</p>
-            </div>
+        <div class="form-group">
+          <label class="form-label" for="instructions">Special Instructions (Optional)</label>
+          <textarea class="form-textarea" id="instructions" placeholder="Any special requests..."></textarea>
         </div>
+        <div id="checkout-summary" class="order-summary"></div>
+        <div id="upsell-section"></div>
+        <button type="submit" id="submit-btn" class="submit-btn">Place Order — <span id="checkout-total">₹0</span></button>
+      </form>
     </div>
+  </div>
 
-    <!-- Toast Notifications -->
-    <div id="toast-container"></div>
+  <!-- Confirmation Modal -->
+  <div id="confirmation-modal" class="modal">
+    <div id="confirm-overlay" class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="confirmation-content">
+        <div class="confirm-check">✓</div>
+        <h2 class="confirm-title">Order Confirmed!</h2>
+        <p class="confirm-desc">Your order #<span id="confirm-order-id">AC12345</span> has been placed. We'll deliver it shortly.</p>
+        <div class="share-card">
+          <div class="share-label">Share your order</div>
+          <div class="share-text" id="confirm-share-text"></div>
+          <div class="share-actions">
+            <button id="share-wa" class="share-btn share-btn-wa" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              Share on WhatsApp
+            </button>
+            <button id="share-copy" class="share-btn share-btn-copy" type="button">📋 Copy</button>
+          </div>
+        </div>
+        <button id="continue-btn" class="continue-btn" type="button">Continue Shopping</button>
+      </div>
+    </div>
+  </div>
 
-    <script src="js/app.js"></script>
+  <!-- Bottom Tab Bar -->
+  <nav class="tab-bar" role="tablist" aria-label="Main navigation">
+    <button class="tab-item active" data-tab="home" role="tab" aria-selected="true" aria-label="Home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <span>Home</span>
+    </button>
+    <button class="tab-item" data-tab="favorites" role="tab" aria-selected="false" aria-label="Favorites">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+      <span>Favorites</span>
+    </button>
+    <button class="tab-item" data-tab="orders" role="tab" aria-selected="false" aria-label="My Orders">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 0 1-8 0"/>
+      </svg>
+      <span>Orders</span>
+    </button>
+  </nav>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <script type="module" src="js/storefront.js"></script>
 </body>
-
 </html>

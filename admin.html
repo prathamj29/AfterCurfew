@@ -1928,8 +1928,11 @@
     </div>
 
     <script type="module">
-        // ===== BACKGROUND REMOVAL LIBRARY =====
-        import imglyRemoveBackground from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm';
+        // ===== BACKGROUND REMOVAL LIBRARY (non-blocking) =====
+        let imglyRemoveBackground;
+        import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm')
+            .then(mod => { imglyRemoveBackground = mod.default; })
+            .catch(() => console.warn('Background removal not available'));
 
         // ===== STATE =====
         let products = [];
@@ -1939,6 +1942,7 @@
         let appJsContent = '';
         let editingIndex = -1;
         let hasUnsavedChanges = false;
+        let savedStock = {};
         let config = {
             user: localStorage.getItem('ac_user') || '',
             repo: localStorage.getItem('ac_repo') || '',
@@ -2011,9 +2015,9 @@
 
         function renderStats() {
             document.getElementById('stat-total').textContent = products.length;
-            const inStock = products.filter(p => (typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0)) > 0);
-            const outStock = products.filter(p => (typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0)) === 0);
             const lowStock = products.filter(p => { const s = typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0); return s > 0 && s <= 3; });
+            const inStock = products.filter(p => (typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0)) > 3);
+            const outStock = products.filter(p => (typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0)) === 0);
             document.getElementById('stat-instock').textContent = inStock.length;
             document.getElementById('stat-outstock').textContent = outStock.length;
             const lowEl = document.getElementById('stat-lowstock');
@@ -2096,20 +2100,22 @@
         async function toggleStock(index) {
             const current = typeof products[index].stock === 'number' ? products[index].stock : (products[index].inStock ? 10 : 0);
             if (current > 0) {
+                savedStock[index] = current;
                 products[index].stock = 0;
                 products[index].inStock = false;
             } else {
-                products[index].stock = 10;
+                const restored = savedStock[index] !== undefined ? savedStock[index] : 10;
+                products[index].stock = restored;
                 products[index].inStock = true;
             }
             renderAll();
 
-            // Push instantly
+            // Push entire array to avoid index mismatch
             try {
-                await fetch(`${FB_URL}/products/${index}.json`, {
-                    method: 'PATCH',
+                await fetch(`${FB_URL}/products.json`, {
+                    method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ stock: products[index].stock, inStock: products[index].inStock })
+                    body: JSON.stringify(products)
                 });
                 showToast('Stock toggled instantly!');
             } catch (e) {
@@ -2123,12 +2129,12 @@
             products[index].inStock = stock > 0;
             renderAll();
 
-            // Push instantly
+            // Push entire array to avoid index mismatch
             try {
-                await fetch(`${FB_URL}/products/${index}.json`, {
-                    method: 'PATCH',
+                await fetch(`${FB_URL}/products.json`, {
+                    method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ stock: stock, inStock: stock > 0 })
+                    body: JSON.stringify(products)
                 });
                 showToast('Stock amount updated!');
             } catch (e) {
@@ -2596,7 +2602,7 @@
 
             try {
                 const res = await fetch(FB_URL + '/.json', {
-                    method: 'PUT',
+                    method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ siteConfig, products })
                 });

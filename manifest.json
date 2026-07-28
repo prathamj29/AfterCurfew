@@ -3,17 +3,17 @@
   "short_name": "AfterCurfew",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1a1a1a",
-  "theme_color": "#1a1a1a",
+  "background_color": "#0a0a0f",
+  "theme_color": "#007AFF",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "https://placehold.co/192x192/1a1a1a/6ee7b7?text=AC",
+      "src": "https://placehold.co/192x192/0a0a0f/007AFF?text=AC",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://placehold.co/512x512/1a1a1a/6ee7b7?text=AC",
+      "src": "https://placehold.co/512x512/0a0a0f/007AFF?text=AC",
       "sizes": "512x512",
       "type": "image/png"
     }
