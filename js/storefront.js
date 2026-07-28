@@ -730,62 +730,134 @@ function renderInvoiceCard(data) {
 
 function getInvoiceText() {
   const orderId = $('invoice-order-id')?.textContent || ''
-  const customer = $('invoice-customer')?.textContent || ''
+  const customerEl = $('invoice-customer')
+  const customer = customerEl ? customerEl.textContent : ''
   const rows = document.querySelectorAll('#invoice-items .invoice-row')
-  let items = ''
+  const items = []
   rows.forEach(r => {
     const name = r.querySelector('.invoice-item-name')?.textContent || ''
     const qty = r.querySelector('.invoice-item-qty')?.textContent || ''
+    const price = r.querySelector('.invoice-item-price')?.textContent || ''
     const total = r.querySelector('.invoice-item-total')?.textContent || ''
-    if (name) items += `\n${name} ${qty} — ${total}`
+    if (name) items.push({ name, qty, price, total })
   })
   const summary = document.querySelectorAll('#invoice-summary .invoice-row')
-  let sums = ''
+  const sums = []
   summary.forEach(r => {
     const label = r.querySelector('span:first-child')?.textContent || ''
     const val = r.querySelector('span:last-child')?.textContent || ''
-    if (label && val) sums += `\n${label}: ${val}`
+    if (label && val) sums.push({ label, val })
   })
-  return `*AFTERCURFEW INVOICE*\n*Order:* ${orderId}\n${customer}${items}\n━━━━━━━━━━━━━━━━━━${sums}\n━━━━━━━━━━━━━━━━━━\nThank you for ordering!`
+  const itemLines = items.map(i => `${i.name.padEnd(20)} ${i.qty.padStart(3)}  ${i.total.padStart(7)}`).join('\n')
+  const sumLines = sums.map(s => `${s.label.padEnd(20)} ${s.val.padStart(10)}`).join('\n')
+  return [
+    'AFTERCURFEW',
+    `Order #${orderId}`,
+    customer,
+    '─'.repeat(32),
+    itemLines,
+    '─'.repeat(32),
+    sumLines,
+    '─'.repeat(32),
+    'Thank you for ordering!'
+  ].join('\n')
 }
 
-$('share-wa')?.addEventListener('click', () => {
-  const text = getInvoiceText()
-  if (text) window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank')
-})
 $('share-copy')?.addEventListener('click', function () {
   const text = getInvoiceText()
-  if (text && navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => {
-      this.textContent = '✅ Copied!'
-      setTimeout(() => this.textContent = '📋 Copy to Clipboard', 2000)
-    })
-  }
+  if (!text || !navigator.clipboard) return
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = this.innerHTML
+    this.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!'
+    setTimeout(() => this.innerHTML = orig, 2000)
+  })
 })
 $('print-invoice-btn')?.addEventListener('click', () => {
   const el = document.getElementById('invoice-card')
   if (!el) return
   const clone = el.cloneNode(true)
-  const win = window.open('', '_blank', 'width=400,height=600')
+  clone.querySelectorAll('.invoice-item-price').forEach(s => s.remove())
+  const win = window.open('', '_blank', 'width=420,height=640')
   win.document.write(`<!DOCTYPE html><html><head><title>Invoice</title>
     <style>
-      body{font-family:Inter,sans-serif;padding:24px;color:#111;background:#fff;max-width:360px;margin:0 auto}
-      .invoice-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-      .invoice-brand{font-size:18px;font-weight:800}
-      .invoice-order-id{font-size:14px;color:#666}
-      .invoice-customer{font-size:13px;color:#555;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #ddd}
-      .invoice-row{display:flex;padding:6px 0;font-size:13px;gap:8px}
-      .invoice-row span:first-child{flex:1}
-      .invoice-row span:nth-child(2){width:32px;text-align:center}
-      .invoice-row span:nth-child(3){width:48px;text-align:right}
-      .invoice-row span:last-child{width:64px;text-align:right;font-weight:600}
-      .invoice-row.grand-total{border-top:2px solid #111;margin-top:4px;padding-top:8px;font-size:15px}
-      .invoice-row.grand-total span:last-child{font-size:17px}
-      .invoice-row.promo span:last-child{color:#e53e3e}
-      .invoice-summary .subtotal span:last-child{color:#666;font-weight:400}
-    </style></head><body>${clone.innerHTML}</body></html>`)
+      @page { margin: 0; }
+      * { box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+        padding: 32px 28px;
+        color: #1a1a2e;
+        background: #f8f9fa;
+        max-width: 380px;
+        margin: 0 auto;
+        min-height: 100vh;
+      }
+      .invoice-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      }
+      .invoice-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #1a1a2e;
+      }
+      .invoice-brand {
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: -0.3px;
+      }
+      .invoice-order-id {
+        font-size: 13px;
+        color: #888;
+        font-weight: 600;
+        background: #f0f0f5;
+        padding: 4px 10px;
+        border-radius: 20px;
+      }
+      .invoice-customer {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 14px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        line-height: 1.5;
+      }
+      .invoice-items { margin-bottom: 4px; }
+      .invoice-row {
+        display: flex;
+        padding: 6px 0;
+        font-size: 13px;
+        gap: 8px;
+        align-items: center;
+      }
+      .invoice-row span:first-child { flex: 1; min-width: 0; }
+      .invoice-row span:nth-child(2) { width: 32px; text-align: center; color: #888; }
+      .invoice-row span:last-child { width: 64px; text-align: right; font-weight: 600; }
+      .invoice-summary { border-top: 1px solid #eee; padding-top: 6px; margin-top: 4px; }
+      .invoice-row.subtotal span:last-child { font-weight: 400; color: #888; }
+      .invoice-row.promo span:last-child { color: #e53e3e; }
+      .invoice-row.fee span:last-child { color: #888; }
+      .invoice-row.grand-total {
+        border-top: 2px solid #1a1a2e;
+        margin-top: 6px;
+        padding-top: 10px;
+        font-size: 15px;
+      }
+      .invoice-row.grand-total span:last-child { font-size: 18px; font-weight: 800; }
+      .print-footer {
+        text-align: center;
+        font-size: 11px;
+        color: #aaa;
+        margin-top: 20px;
+      }
+    </style></head><body><div class="invoice-card">${clone.innerHTML}</div><div class="print-footer">AfterCurfew — Late Night Delivery</div></body></html>`)
   win.document.close()
-  setTimeout(() => { win.print() }, 300)
+  win.focus()
+  setTimeout(() => { win.print(); win.close() }, 400)
 })
 $('continue-btn')?.addEventListener('click', () => {
   confirmationModal.classList.remove('open')

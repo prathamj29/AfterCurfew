@@ -327,9 +327,20 @@
 }
 
 .card-stock-badge.sold {
-  background: rgba(239, 68, 68, 0.2);
-  color: var(--error);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(2px);
+  z-index: 1;
+  border: none;
+  border-radius: 0;
 }
 
 .card-add {
@@ -1444,13 +1455,13 @@
   transition: background 0.2s;
 }
 
-.share-btn-wa {
-  background: #25d366;
+.share-btn-print {
+  background: var(--accent);
   color: #fff;
 }
 
-.share-btn-wa:hover {
-  background: #1ebe5d;
+.share-btn-print:hover {
+  opacity: 0.9;
 }
 
 .share-btn-copy {
@@ -1851,8 +1862,9 @@
     gap: 20px;
   }
   .cart-fab {
-    bottom: 24px;
+    bottom: calc(var(--tab-bar-height) + 16px);
     right: 24px;
+    z-index: 101;
   }
   .modal-content {
     padding: 32px;
