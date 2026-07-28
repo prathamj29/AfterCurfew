@@ -1628,6 +1628,7 @@
                     <button class="nav-btn active" data-tab="overview"><span class="icon">📊</span> Dashboard</button>
                     <button class="nav-btn" data-tab="orders"><span class="icon">📋</span> Orders</button>
                     <button class="nav-btn" data-tab="products"><span class="icon">📦</span> Products</button>
+                    <button class="nav-btn" data-tab="promotions"><span class="icon">🏷️</span> Promotions</button>
                     <button class="nav-btn" data-tab="settings"><span class="icon">⚙️</span> Settings</button>
                 </nav>
                 <div class="sidebar-footer">
@@ -1857,7 +1858,68 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Promotions Tab -->
+                    <div class="tab" id="tab-promotions">
+                        <div class="settings-section">
+                            <h3>🏷️ Promo Codes</h3>
+                            <p class="section-desc">Manage promo codes. Each product can be marked eligible for specific promos in the product editor.</p>
+                            <div id="promo-list-area">
+                                <p style="color:var(--text-dim);text-align:center;padding:40px;">Loading promos...</p>
+                            </div>
+                            <button class="btn-add" onclick="showAddPromoModal()" style="margin-top:12px;">+ Add Promo Code</button>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Promo Modal -->
+    <div class="modal-overlay hidden" id="promo-modal">
+        <div class="modal-box">
+            <h3 id="promo-modal-title">Add Promo Code</h3>
+            <div class="form-group">
+                <label>Code</label>
+                <input type="text" id="pm-code" placeholder="e.g. NIGHT20" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select id="pm-type" onchange="togglePromoTypeFields()">
+                    <option value="percent">Percentage Off</option>
+                    <option value="flat">Flat Amount Off</option>
+                    <option value="free_item">Free Item</option>
+                </select>
+            </div>
+            <div class="form-group" id="pm-value-group">
+                <label>Value</label>
+                <input type="number" id="pm-value" placeholder="e.g. 20 for 20% off">
+                <span style="font-size:11px;color:var(--text-dim);display:block;margin-top:2px;">For percentage, enter the number (e.g. 20 = 20% off)</span>
+            </div>
+            <div class="form-group" id="pm-item-group" style="display:none;">
+                <label>Free Item</label>
+                <select id="pm-item">
+                    <option value="">Select a product...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Minimum Order (₹)</label>
+                <input type="number" id="pm-minorder" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+                <label>Description (shown to customer)</label>
+                <input type="text" id="pm-desc" placeholder="e.g. 20% off on eligible items">
+            </div>
+            <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+                <label class="toggle" style="margin:0;">
+                    <input type="checkbox" id="pm-active" checked>
+                    <span class="slider"></span>
+                </label>
+                <span style="font-size:13px;color:var(--text-dim);">Active</span>
+            </div>
+            <div class="btn-row">
+                <button class="btn-secondary" onclick="closePromoModal()">Cancel</button>
+                <button class="btn-primary" id="promo-modal-save-btn" onclick="savePromo()">Add Promo</button>
             </div>
         </div>
     </div>
@@ -1899,6 +1961,11 @@
                 <input type="number" id="m-stock" placeholder="10" min="0" style="max-width:160px">
                 <span style="font-size:12px;color:var(--text-dim);margin-top:4px;display:block">Set to 0 for Sold
                     Out</span>
+            </div>
+            <div class="form-group" id="promo-checkboxes-group" style="display:none;">
+                <label>Eligible Promos</label>
+                <div id="promo-checkboxes" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;"></div>
+                <span style="font-size:11px;color:var(--text-dim);display:block;margin-top:4px;">Only products marked eligible can use each promo.</span>
             </div>
             <div class="form-group">
                 <label>Product Image</label>
@@ -1943,6 +2010,8 @@
         let editingIndex = -1;
         let hasUnsavedChanges = false;
         let savedStock = {};
+        let promoCodes = {};
+        let promoEditingIndex = -1;
         let config = {
             user: localStorage.getItem('ac_user') || '',
             repo: localStorage.getItem('ac_repo') || '',
@@ -1990,6 +2059,7 @@
                 if (data) {
                     siteConfig = data.siteConfig || {};
                     products = data.products || [];
+                    promoCodes = data.promoCodes || {};
                 }
 
                 renderAll();
@@ -2011,6 +2081,7 @@
             renderSettings();
             renderConfigPreview();
             renderStoreToggle();
+            renderPromotions();
         }
 
         function renderStats() {
@@ -2061,6 +2132,7 @@
                 const stock = typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0);
                 const stockColor = stock === 0 ? '#f87171' : stock <= 3 ? '#fbbf24' : '#34d399';
                 const stockLabel = stock === 0 ? '● Sold Out' : stock <= 3 ? '⚠ ' + stock + ' left' : '● ' + stock + ' in stock';
+                const promoBadges = (p.promos && p.promos.length > 0) ? p.promos.map(c => `<span style="display:inline-block;padding:1px 6px;border-radius:4px;background:var(--accent);color:#000;font-size:10px;font-weight:600;margin-right:3px;">${c}</span>`).join('') : '';
                 return `
             <div class="product-row">
                 <img src="${p.image}" class="p-img" onerror="this.src='https://placehold.co/56/1a1a1a/888?text=?'">
@@ -2071,6 +2143,7 @@
                         <span style="color:${p.costPrice ? ((p.price - p.costPrice) > 0 ? '#34d399' : '#f87171') : 'var(--text-dim)'};font-weight:600;">${p.costPrice ? '↗ ₹' + (p.price - p.costPrice) + ' profit' : 'No cost set'}</span>
                         <span style="color:${stockColor};font-weight:600;">${stockLabel}</span>
                         <span>${p.category}</span>
+                        ${promoBadges ? `<span>${promoBadges}</span>` : ''}
                     </div>
                 </div>
                 <div class="p-actions">
@@ -2193,6 +2266,7 @@
             document.getElementById('img-preview').innerHTML = '<span>Click to upload image</span>';
             document.getElementById('bg-comparison').style.display = 'none';
             document.getElementById('bg-remove-toggle').checked = true;
+            renderPromoCheckboxes([]);
             document.getElementById('product-modal').classList.remove('hidden');
         }
 
@@ -2213,6 +2287,8 @@
             document.getElementById('img-preview').innerHTML = `<img src="${p.image}" alt="Preview">`;
             document.getElementById('bg-comparison').style.display = 'none';
             document.getElementById('bg-remove-toggle').checked = true;
+            // Load promo checkboxes
+            renderPromoCheckboxes(p.promos || []);
             document.getElementById('product-modal').classList.remove('hidden');
         }
 
@@ -2294,6 +2370,12 @@
             const fileInput = document.getElementById('m-image-file');
             const urlInput = document.getElementById('m-image-url').value.trim();
 
+            // Collect selected promos
+            const selectedPromos = [];
+            document.querySelectorAll('#promo-checkboxes input[type="checkbox"]:checked').forEach(cb => {
+                selectedPromos.push(cb.value);
+            });
+
             if (!name || !price) return alert('Name and Price are required');
 
             const btn = document.getElementById('modal-save-btn');
@@ -2314,11 +2396,13 @@
                     products[editingIndex].image = imagePath;
                     products[editingIndex].stock = stock;
                     products[editingIndex].inStock = stock > 0;
+                    products[editingIndex].promos = selectedPromos;
                 } else {
                     products.push({
                         id: crypto.randomUUID(),
                         name, description: desc || 'New product', category, price, costPrice,
-                        image: imagePath, inStock: stock > 0, stock: stock
+                        image: imagePath, inStock: stock > 0, stock: stock,
+                        promos: selectedPromos
                     });
                 }
 
@@ -2604,7 +2688,7 @@
                 const res = await fetch(FB_URL + '/.json', {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ siteConfig, products })
+                    body: JSON.stringify({ siteConfig, products, promoCodes })
                 });
 
                 if (!res.ok) throw new Error('Firebase update failed');
@@ -2616,6 +2700,171 @@
                 btn.textContent = 'Save Settings';
                 btn.disabled = false;
             }
+        }
+
+        // ===== PROMOTIONS =====
+        function renderPromoCheckboxes(selected = []) {
+            const container = document.getElementById('promo-checkboxes');
+            const group = document.getElementById('promo-checkboxes-group');
+            if (!container) return;
+            const codes = Object.keys(promoCodes).filter(c => promoCodes[c].active !== false);
+            if (codes.length === 0) {
+                if (group) group.style.display = 'none';
+                return;
+            }
+            if (group) group.style.display = 'block';
+            container.innerHTML = codes.map(code => `
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 10px;background:var(--bg);border-radius:6px;border:1px solid var(--border);font-size:13px;">
+                    <input type="checkbox" value="${code}" ${selected.includes(code) ? 'checked' : ''}>
+                    ${code}
+                </label>
+            `).join('');
+        }
+
+        function renderPromotions() {
+            const area = document.getElementById('promo-list-area');
+            if (!area) return;
+            const codes = Object.keys(promoCodes);
+            if (codes.length === 0) {
+                area.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px;">No promo codes yet. Add one to get started!</p>';
+                return;
+            }
+            area.innerHTML = codes.map(code => {
+                const p = promoCodes[code];
+                const typeLabel = p.type === 'percent' ? `${p.value}% Off` : p.type === 'flat' ? `₹${p.value} Off` : p.type === 'free_item' ? `🎁 Free ${p.itemName || 'item'}` : '—';
+                return `
+                    <div class="promo-row" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:8px;border:1px solid var(--border);">
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:16px;font-weight:700;color:var(--accent);">${code}</div>
+                            <div style="font-size:13px;color:var(--text-dim);margin-top:2px;">${typeLabel} · Min ₹${p.minOrder || 0} · ${p.description || ''}</div>
+                            <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">Used ${p.usageCount || 0} times</div>
+                        </div>
+                        <label class="toggle" title="Toggle active" style="flex-shrink:0;">
+                            <input type="checkbox" ${p.active !== false ? 'checked' : ''} onchange="togglePromoActive('${code}')">
+                            <span class="slider"></span>
+                        </label>
+                        <button class="btn-icon" title="Edit" onclick="openEditPromo('${code}')" style="flex-shrink:0;">✏️</button>
+                        <button class="btn-icon danger" title="Delete" onclick="deletePromo('${code}')" style="flex-shrink:0;">🗑️</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function togglePromoActive(code) {
+            if (promoCodes[code]) {
+                promoCodes[code].active = !promoCodes[code].active;
+                renderPromotions();
+                showToast(`${code} ${promoCodes[code].active ? 'activated' : 'deactivated'}`);
+            }
+        }
+
+        function togglePromoTypeFields() {
+            const type = document.getElementById('pm-type').value;
+            document.getElementById('pm-value-group').style.display = type === 'free_item' ? 'none' : 'block';
+            document.getElementById('pm-item-group').style.display = type === 'free_item' ? 'block' : 'none';
+        }
+
+        function populatePromoProductDropdown() {
+            const sel = document.getElementById('pm-item');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">Select a product...</option>';
+            products.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.name;
+                opt.textContent = `${p.name} — ₹${p.price}${p.costPrice ? ' (cost ₹' + p.costPrice + ')' : ''}`;
+                sel.appendChild(opt);
+            });
+        }
+
+        function showAddPromoModal() {
+            promoEditingIndex = -1;
+            document.getElementById('promo-modal-title').textContent = 'Add Promo Code';
+            document.getElementById('promo-modal-save-btn').textContent = 'Add Promo';
+            document.getElementById('pm-code').value = '';
+            document.getElementById('pm-code').disabled = false;
+            document.getElementById('pm-type').value = 'percent';
+            document.getElementById('pm-value').value = '';
+            document.getElementById('pm-item').value = '';
+            document.getElementById('pm-minorder').value = '';
+            document.getElementById('pm-desc').value = '';
+            document.getElementById('pm-active').checked = true;
+            populatePromoProductDropdown();
+            togglePromoTypeFields();
+            document.getElementById('promo-modal').classList.remove('hidden');
+        }
+
+        function openEditPromo(code) {
+            const p = promoCodes[code];
+            if (!p) return;
+            promoEditingIndex = code;
+            document.getElementById('promo-modal-title').textContent = 'Edit Promo Code';
+            document.getElementById('promo-modal-save-btn').textContent = 'Save Changes';
+            document.getElementById('pm-code').value = code;
+            document.getElementById('pm-code').disabled = true;
+            document.getElementById('pm-type').value = p.type || 'percent';
+            document.getElementById('pm-value').value = p.value || '';
+            document.getElementById('pm-minorder').value = p.minOrder || '';
+            document.getElementById('pm-desc').value = p.description || '';
+            document.getElementById('pm-active').checked = p.active !== false;
+            populatePromoProductDropdown();
+            document.getElementById('pm-item').value = p.itemName || '';
+            togglePromoTypeFields();
+            document.getElementById('promo-modal').classList.remove('hidden');
+        }
+
+        function closePromoModal() {
+            document.getElementById('promo-modal').classList.add('hidden');
+        }
+
+        async function savePromo() {
+            const code = document.getElementById('pm-code').value.trim().toUpperCase();
+            if (!code) return alert('Code is required');
+            const type = document.getElementById('pm-type').value;
+            const value = type !== 'free_item' ? Number(document.getElementById('pm-value').value) || 0 : 0;
+            const itemName = type === 'free_item' ? document.getElementById('pm-item').value.trim() : '';
+            const minOrder = Number(document.getElementById('pm-minorder').value) || 0;
+            const description = document.getElementById('pm-desc').value.trim() || '—';
+            const active = document.getElementById('pm-active').checked;
+
+            if (type === 'free_item' && !itemName) return alert('Please enter the free item name');
+            if (type !== 'free_item' && value <= 0) return alert('Please enter a valid value');
+
+            const existing = promoCodes[code];
+            promoCodes[code] = {
+                ...(existing || {}),
+                type, value, itemName, minOrder, description, active,
+                usageCount: existing?.usageCount || 0,
+            };
+
+            try {
+                await fetch(`${FB_URL}/promoCodes.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(promoCodes)
+                });
+                showToast(promoEditingIndex ? 'Promo updated!' : 'Promo added!');
+            } catch (e) {
+                showToast('Failed to save promo', true);
+            }
+
+            closePromoModal();
+            renderPromotions();
+        }
+
+        async function deletePromo(code) {
+            if (!confirm(`Delete promo code "${code}"?`)) return;
+            delete promoCodes[code];
+            try {
+                await fetch(`${FB_URL}/promoCodes.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(promoCodes)
+                });
+                showToast(`Promo ${code} deleted`);
+            } catch (e) {
+                showToast('Failed to delete promo', true);
+            }
+            renderPromotions();
         }
 
         // ===== NAVIGATION =====
@@ -2645,13 +2894,20 @@
         window.toggleStoreOpen = toggleStoreOpen;
         window.renderDailySummary = renderDailySummary;
         window.renderBestSellers = renderBestSellers;
+        window.showAddPromoModal = showAddPromoModal;
+        window.openEditPromo = openEditPromo;
+        window.closePromoModal = closePromoModal;
+        window.savePromo = savePromo;
+        window.deletePromo = deletePromo;
+        window.togglePromoActive = togglePromoActive;
+        window.togglePromoTypeFields = togglePromoTypeFields;
 
         function switchTab(tab) {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.querySelector(`.nav-btn[data-tab="${tab}"]`).classList.add('active');
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById(`tab-${tab}`).classList.add('active');
-            const titles = { overview: 'Dashboard', products: 'Products', settings: 'Settings', orders: 'Orders' };
+            const titles = { overview: 'Dashboard', products: 'Products', promotions: 'Promotions', settings: 'Settings', orders: 'Orders' };
             document.getElementById('page-title').textContent = titles[tab] || 'Dashboard';
             if (tab === 'orders') fetchOrders();
             closeSidebar();
@@ -2753,6 +3009,7 @@
             html += '<th style="padding:10px 8px;color:var(--accent);">Items</th>';
             html += '<th style="padding:10px 8px;color:var(--accent);text-align:right;">Total</th>';
             html += '<th style="padding:10px 8px;color:#34d399;text-align:right;">Profit</th>';
+            html += '<th style="padding:10px 8px;color:var(--accent);text-align:center;">Invoice</th>';
             html += '</tr></thead><tbody>';
             orders.forEach(o => {
                 const delivery = o['Delivery Type'] === 'delivery' ? `🚪 F${o['Floor']} R${o['Room']}` : '🏃 Pickup';
@@ -2766,6 +3023,8 @@
                 const displayProfit = Math.round((o.calculatedProfit || 0) * 100) / 100;
                 html += `<td style="padding:10px 8px;text-align:right;font-weight:700;color:var(--accent);">₹${o['Total'] || 0}</td>`;
                 html += `<td style="padding:10px 8px;text-align:right;font-weight:600;color:#34d399;">₹${displayProfit}</td>`;
+                const orderData = encodeURIComponent(JSON.stringify(o));
+                html += `<td style="padding:10px 8px;text-align:center;"><button class="btn-icon" title="Print Invoice" onclick="printOrder('${orderData}')">🧾</button></td>`;
                 html += `</tr>`;
             });
             html += '</tbody></table></div>';
@@ -2775,6 +3034,47 @@
 
         window.fetchOrders = fetchOrders;
         window.renderOrders = renderOrders;
+
+        function printOrder(orderStr) {
+            try {
+                const o = JSON.parse(decodeURIComponent(orderStr));
+                const delivery = o['Delivery Type'] === 'delivery'
+                    ? `🚪 Floor ${o['Floor'] || '-'}, Room ${o['Room'] || '-'}`
+                    : '🏃 Pickup';
+                const items = (o['Items'] || '').split(', ').filter(Boolean);
+                let itemsHtml = items.map(item => `<tr><td style="padding:4px 0;font-size:13px;">${item}</td></tr>`).join('');
+                const promo = o['Promo'] ? `<p style="font-size:13px;color:#666;">Promo: ${o['Promo']}</p>` : '';
+
+                const win = window.open('', '_blank', 'width=420,height=600');
+                win.document.write(`<!DOCTYPE html><html><head><title>Invoice ${o['Order ID'] || ''}</title>
+                    <style>
+                        body{font-family:Inter,sans-serif;padding:24px;max-width:360px;margin:0 auto;color:#111;background:#fff}
+                        h1{font-size:20px;font-weight:800;margin-bottom:4px}
+                        .meta{font-size:13px;color:#555;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #ddd}
+                        table{width:100%;border-collapse:collapse;margin-bottom:8px}
+                        th{text-align:left;font-size:12px;color:#888;padding:4px 0}
+                        .total{font-size:16px;font-weight:800;border-top:2px solid #111;padding-top:8px;margin-top:4px;text-align:right}
+                        .footer{text-align:center;font-size:12px;color:#888;margin-top:16px;padding-top:12px;border-top:1px solid #ddd}
+                    </style></head><body>
+                    <h1>AfterCurfew</h1>
+                    <div class="meta">
+                        <strong>Order:</strong> ${o['Order ID'] || '-'}<br>
+                        <strong>Customer:</strong> ${o['Customer Name'] || '-'}<br>
+                        <strong>Phone:</strong> ${o['Phone'] || '-'}<br>
+                        <strong>${delivery}</strong><br>
+                        <strong>Time:</strong> ${o['Timestamp'] || '-'}
+                    </div>
+                    <table><thead><tr><th>Items</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+                    ${promo}
+                    <div class="total">Total: ₹${o['Total'] || 0}</div>
+                    <div class="footer">Thank you for ordering!</div>
+                    <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
+                </body></html>`);
+                win.document.close();
+            } catch (e) {
+                showToast('Failed to generate invoice', true);
+            }
+        }
 
         // ===== ORDER NOTIFICATION SYSTEM =====
         let notificationsEnabled = false;

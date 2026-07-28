@@ -29,3 +29,27 @@ export async function saveSiteConfig(config) {
     body: JSON.stringify(config),
   })
 }
+
+export async function fetchPromoCodes() {
+  const res = await fetch(`${FB_URL}/promoCodes.json`)
+  const data = await res.json()
+  return data || {}
+}
+
+export async function savePromoCodes(codes) {
+  await fetch(`${FB_URL}/promoCodes.json`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(codes),
+  })
+}
+
+export async function incrementPromoUse(code) {
+  const res = await fetch(`${FB_URL}/promoCodes/${code}/usageCount.json`)
+  const current = (await res.json()) || 0
+  await fetch(`${FB_URL}/promoCodes/${code}/usageCount.json`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(current + 1),
+  })
+}

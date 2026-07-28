@@ -46,8 +46,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let siteConfig = {
         ownerPhone: "919265807630",
         deliveryHours: "12 AM - 3 AM",
-        deliveryFee: 10,
-        pickupLocation: "Room 730"
+        deliveryFee: 30,
+        pickupLocation: "Room 509"
     };
 
     // --- PRODUCT DATA ---
@@ -420,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateCheckoutTotal() {
         const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const deliveryFee = getDeliveryType() === 'delivery' ? (siteConfig.deliveryFee || 10) : 0;
+        const deliveryFee = getDeliveryType() === 'delivery' ? (siteConfig.deliveryFee || 30) : 0;
         const total = subtotal + deliveryFee;
         checkoutTotal.textContent = formatCurrency(total);
 
@@ -531,7 +531,7 @@ document.addEventListener('DOMContentLoaded', function () {
         message += `Name: ${name}\n`;
         message += `Phone: ${phone}\n`;
         if (deliveryType === 'pickup') {
-            message += `📍 *Pickup from ${siteConfig.pickupLocation || 'Room 730'}*\n`;
+            message += `📍 *Pickup from ${siteConfig.pickupLocation || 'Room 509'}*\n`;
         } else {
             message += `🚪 *Deliver to Floor ${floor}, Room ${room}*\n`;
         }

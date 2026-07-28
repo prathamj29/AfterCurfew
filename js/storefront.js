@@ -1,4 +1,4 @@
-import { fetchFirebaseData, updateProduct } from './firebase.js'
+import { fetchFirebaseData, updateProduct, fetchPromoCodes, incrementPromoUse } from './firebase.js'
 import {
   getCart, addItem, removeItem, updateQuantity, clearCart,
   getItemCount, getSubtotal, onChange as onCartChange,
@@ -7,6 +7,8 @@ import {
 // --- State ---
 let products = []
 let siteConfig = {}
+let promoCodes = {}
+let appliedPromo = null
 let favorites = []
 let currentCategory = 'all'
 let currentSearch = ''
@@ -436,14 +438,35 @@ function renderOrders() {
       <div class="order-items">${o.items.map(i => `${i.name} × ${i.quantity}`).join(', ')}</div>
       <div class="order-footer">
         <span class="order-total">${formatPrice(o.total)}</span>
-        <span class="order-status sent">${o.status || 'Sent'}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="order-status sent">${(o.status || 'Sent').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+          <button class="reorder-btn" onclick="window.reorderItems('${encodeURIComponent(JSON.stringify(o.items))}')">↻ Reorder</button>
+        </div>
       </div>
     </div>
   `).join('')
 }
 
+function reorderItems(itemsStr) {
+  try {
+    const items = JSON.parse(decodeURIComponent(itemsStr))
+    if (!items.length) return
+    clearCart()
+    items.forEach(item => addItem(item.name, item.price, item.quantity))
+    updateCartFab()
+    showToast('Items added to cart!')
+  } catch (e) {
+    showToast('Failed to reorder', 'error')
+  }
+}
+
 // --- Checkout ---
 function openCheckout() {
+  appliedPromo = null
+  const statusEl = $('promo-status')
+  if (statusEl) { statusEl.textContent = ''; statusEl.className = 'promo-status' }
+  const inputEl = $('promo-code')
+  if (inputEl) inputEl.value = ''
   closeCartSheet()
   checkoutModal.classList.add('open')
   bodyLock(true)
@@ -461,10 +484,25 @@ function renderCheckoutSummary() {
   if (!summary) return
   const subtotal = getSubtotal()
   const deliveryType = document.querySelector('input[name="delivery-type"]:checked')?.value || 'pickup'
-  const fee = deliveryType === 'delivery' ? (siteConfig.deliveryFee || 10) : 0
-  const total = subtotal + fee
+  let discount = 0
+  let freeItemLine = ''
+  if (appliedPromo) {
+    if (appliedPromo.type === 'percent') {
+      discount = Math.round(subtotal * appliedPromo.value / 100)
+    } else if (appliedPromo.type === 'flat') {
+      discount = Math.min(appliedPromo.value, subtotal)
+    } else if (appliedPromo.type === 'free_item') {
+      freeItemLine = `<div class="summary-line promo-free-item"><span>🎁 Free ${appliedPromo.itemName}</span><span>₹0</span></div>`
+    }
+  }
+  const fee = deliveryType === 'delivery' ? (siteConfig.deliveryFee || 30) : 0
+  const total = Math.max(0, subtotal + fee - discount)
 
   let html = `<div class="summary-line"><span>Subtotal (${getItemCount()} items)</span><span>${formatPrice(subtotal)}</span></div>`
+  if (appliedPromo) {
+    html += `<div class="summary-line promo-discount" style="cursor:pointer;" onclick="window.removePromo()" title="Remove promo"><span>Promo ${appliedPromo.code} <span style="font-size:11px;color:var(--error);">(remove)</span></span><span>${discount > 0 ? '-' + formatPrice(discount) : '🎁'}</span></div>`
+  }
+  if (freeItemLine) html += freeItemLine
   if (fee > 0) {
     html += `<div class="summary-line"><span>Delivery fee</span><span>${formatPrice(fee)}</span></div>`
   } else {
@@ -474,7 +512,8 @@ function renderCheckoutSummary() {
   summary.innerHTML = html
   if (totalEl) totalEl.textContent = formatPrice(total)
 
-  // Upsell
+  // Promo suggestions + Upsell
+  renderPromoSuggestions()
   renderUpsell()
 }
 
@@ -540,35 +579,69 @@ checkoutForm?.addEventListener('submit', (e) => {
   }
 
   const subtotal = getSubtotal()
-  const fee = deliveryType === 'delivery' ? (siteConfig.deliveryFee || 10) : 0
-  const total = subtotal + fee
-  const cartItems = getCart()
-
-  let msg = `*New Order - AfterCurfew* 🌙\n\n`
-  msg += `*Customer:*\nName: ${name}\nPhone: ${phone}\n`
-  if (deliveryType === 'pickup') {
-    msg += `📍 Pickup from ${siteConfig.pickupLocation || 'Room 730'}\n`
-  } else {
-    msg += `🚪 Deliver to Floor ${floor}, Room ${room}\n`
+  let discount = 0
+  let freeItem = null
+  if (appliedPromo) {
+    if (appliedPromo.type === 'percent') {
+      discount = Math.round(subtotal * appliedPromo.value / 100)
+    } else if (appliedPromo.type === 'flat') {
+      discount = Math.min(appliedPromo.value, subtotal)
+    } else if (appliedPromo.type === 'free_item') {
+      freeItem = products.find(p => p.name.toLowerCase() === appliedPromo.itemName.toLowerCase())
+    }
   }
-  if (instructions) msg += `Note: ${instructions}\n`
-  msg += `\n*Items:*\n`
+  const fee = deliveryType === 'delivery' ? (siteConfig.deliveryFee || 30) : 0
+  const total = Math.max(0, subtotal + fee - discount)
+  let cartItems = getCart()
+  if (freeItem) {
+    cartItems = [...cartItems, { name: freeItem.name, price: 0, quantity: 1 }]
+  }
+
+  const orderId = 'AC' + Date.now().toString().slice(-5)
+  let msg = `*AFTERCURFEW INVOICE*
+*Order:* ${orderId}
+━━━━━━━━━━━━━━━━━━`
+  msg += `\n*Customer:* ${name}`
+  msg += `\n*Phone:* ${phone}`
+  if (deliveryType === 'pickup') {
+    msg += `\n*Pickup:* ${siteConfig.pickupLocation || 'Room 509'}`
+  } else {
+    msg += `\n*Deliver:* Floor ${floor}, Room ${room}`
+  }
+  if (instructions) msg += `\n*Note:* ${instructions}`
+  msg += `\n━━━━━━━━━━━━━━━━━━`
+  msg += `\n*ITEMS*`
   cartItems.forEach(item => {
-    msg += `- ${item.name} x ${item.quantity} (${formatPrice(item.price * item.quantity)})\n`
+    const lineTotal = formatPrice(item.price * item.quantity)
+    msg += `\n${item.name} x${item.quantity} — ${lineTotal}`
   })
+  msg += `\n━━━━━━━━━━━━━━━━━━`
+  msg += `\nSubtotal: ${formatPrice(subtotal)}`
+  if (appliedPromo) msg += `\nPromo (${appliedPromo.code}): -${formatPrice(discount || 0)}`
+  if (fee > 0) msg += `\nDelivery: ${formatPrice(fee)}`
   msg += `\n*Total: ${formatPrice(total)}*`
+  msg += `\n━━━━━━━━━━━━━━━━━━`
+  msg += `\nThank you for ordering!`
 
   const ownerPhone = siteConfig.ownerPhone || '919265807630'
   window.open(`https://wa.me/${ownerPhone}?text=${encodeURIComponent(msg)}`, '_blank')
 
   // Save to history
-  const orderId = 'AC' + Date.now().toString().slice(-5)
   const order = {
     id: orderId,
     date: new Date().toISOString(),
-    items: [...cartItems],
+    items: [...getCart()],
+    subtotal,
+    discount,
+    deliveryFee: fee,
     total,
     status: 'sent_via_whatsapp',
+    promo: appliedPromo ? appliedPromo.code : undefined,
+    deliveryType,
+    floor: floor || '-',
+    room: room || '-',
+    name,
+    phone,
   }
   const history = JSON.parse(localStorage.getItem('aftercurfew-orders') || '[]')
   history.unshift(order)
@@ -583,15 +656,21 @@ checkoutForm?.addEventListener('submit', (e) => {
         body: JSON.stringify({
           orderId, customerName: name, phone: phone,
           deliveryType, floor: floor || '-', room: room || '-',
-          items: cartItems, subtotal, deliveryFee: fee, total,
+          items: getCart(), subtotal, deliveryFee: fee, total,
           instructions: instructions || '-',
+          promo: appliedPromo ? appliedPromo.code : '',
+          discount,
         }),
       })
     } catch (e) {}
   }
 
-  // Deduct stock
-  cartItems.forEach(item => {
+  // Deduct stock (including free item)
+  const itemsToDeduct = getCart()
+  if (freeItem) {
+    itemsToDeduct.push({ name: freeItem.name, quantity: 1 })
+  }
+  itemsToDeduct.forEach(item => {
     const idx = products.findIndex(p => p.name === item.name)
     if (idx !== -1) {
       const current = typeof products[idx].stock === 'number' ? products[idx].stock : (products[idx].inStock ? 10 : 0)
@@ -602,33 +681,111 @@ checkoutForm?.addEventListener('submit', (e) => {
     }
   })
 
+  if (appliedPromo) {
+    incrementPromoUse(appliedPromo.code).catch(() => {})
+    appliedPromo = null
+  }
+
   clearCart()
   updateCartFab()
   renderProducts()
   closeCheckout()
 
   // Show confirmation
-  const shareText = `Just ordered from AfterCurfew! 🌙\n\n🛒 ${cartItems.map(i => `${i.name} × ${i.quantity}`).join(', ')}\n💰 Total: ${formatPrice(total)}\n\nLate-night cravings sorted!`
-  $('confirm-order-id').textContent = orderId
-  $('confirm-share-text').textContent = shareText
-  $('confirm-share-text').dataset.shareText = shareText
+  renderInvoiceCard({ orderId, cartItems, subtotal, discount, fee, total, name, phone, deliveryType, floor, room, promo: appliedPromo })
   confirmationModal.classList.add('open')
   bodyLock(true)
 })
 
 // --- Confirmation ---
+function renderInvoiceCard(data) {
+  $('invoice-order-id').textContent = data.orderId
+  const customerEl = $('invoice-customer')
+  const deliveryStr = data.deliveryType === 'pickup'
+    ? `Pickup from ${siteConfig.pickupLocation || 'Room 509'}`
+    : `Deliver to Floor ${data.floor}, Room ${data.room}`
+  customerEl.textContent = `${data.name} · ${data.phone} · ${deliveryStr}`
+
+  const itemsEl = $('invoice-items')
+  itemsEl.innerHTML = data.cartItems.map(item => `
+    <div class="invoice-row">
+      <span class="invoice-item-name">${item.name}</span>
+      <span class="invoice-item-qty">×${item.quantity}</span>
+      <span class="invoice-item-price">${formatPrice(item.price)}</span>
+      <span class="invoice-item-total">${formatPrice(item.price * item.quantity)}</span>
+    </div>
+  `).join('')
+
+  const summaryEl = $('invoice-summary')
+  let summaryHtml = `<div class="invoice-row subtotal"><span>Subtotal</span><span></span><span></span><span>${formatPrice(data.subtotal)}</span></div>`
+  if (data.discount > 0) {
+    summaryHtml += `<div class="invoice-row promo"><span>Promo (${data.promo?.code || ''})</span><span></span><span></span><span>-${formatPrice(data.discount)}</span></div>`
+  }
+  if (data.fee > 0) {
+    summaryHtml += `<div class="invoice-row fee"><span>Delivery</span><span></span><span></span><span>${formatPrice(data.fee)}</span></div>`
+  }
+  summaryHtml += `<div class="invoice-row grand-total"><span>Total</span><span></span><span></span><span>${formatPrice(data.total)}</span></div>`
+  summaryEl.innerHTML = summaryHtml
+}
+
+function getInvoiceText() {
+  const orderId = $('invoice-order-id')?.textContent || ''
+  const customer = $('invoice-customer')?.textContent || ''
+  const rows = document.querySelectorAll('#invoice-items .invoice-row')
+  let items = ''
+  rows.forEach(r => {
+    const name = r.querySelector('.invoice-item-name')?.textContent || ''
+    const qty = r.querySelector('.invoice-item-qty')?.textContent || ''
+    const total = r.querySelector('.invoice-item-total')?.textContent || ''
+    if (name) items += `\n${name} ${qty} — ${total}`
+  })
+  const summary = document.querySelectorAll('#invoice-summary .invoice-row')
+  let sums = ''
+  summary.forEach(r => {
+    const label = r.querySelector('span:first-child')?.textContent || ''
+    const val = r.querySelector('span:last-child')?.textContent || ''
+    if (label && val) sums += `\n${label}: ${val}`
+  })
+  return `*AFTERCURFEW INVOICE*\n*Order:* ${orderId}\n${customer}${items}\n━━━━━━━━━━━━━━━━━━${sums}\n━━━━━━━━━━━━━━━━━━\nThank you for ordering!`
+}
+
 $('share-wa')?.addEventListener('click', () => {
-  const text = $('confirm-share-text')?.dataset.shareText
+  const text = getInvoiceText()
   if (text) window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank')
 })
 $('share-copy')?.addEventListener('click', function () {
-  const text = $('confirm-share-text')?.dataset.shareText
+  const text = getInvoiceText()
   if (text && navigator.clipboard) {
     navigator.clipboard.writeText(text).then(() => {
       this.textContent = '✅ Copied!'
       setTimeout(() => this.textContent = '📋 Copy to Clipboard', 2000)
     })
   }
+})
+$('print-invoice-btn')?.addEventListener('click', () => {
+  const el = document.getElementById('invoice-card')
+  if (!el) return
+  const clone = el.cloneNode(true)
+  const win = window.open('', '_blank', 'width=400,height=600')
+  win.document.write(`<!DOCTYPE html><html><head><title>Invoice</title>
+    <style>
+      body{font-family:Inter,sans-serif;padding:24px;color:#111;background:#fff;max-width:360px;margin:0 auto}
+      .invoice-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+      .invoice-brand{font-size:18px;font-weight:800}
+      .invoice-order-id{font-size:14px;color:#666}
+      .invoice-customer{font-size:13px;color:#555;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #ddd}
+      .invoice-row{display:flex;padding:6px 0;font-size:13px;gap:8px}
+      .invoice-row span:first-child{flex:1}
+      .invoice-row span:nth-child(2){width:32px;text-align:center}
+      .invoice-row span:nth-child(3){width:48px;text-align:right}
+      .invoice-row span:last-child{width:64px;text-align:right;font-weight:600}
+      .invoice-row.grand-total{border-top:2px solid #111;margin-top:4px;padding-top:8px;font-size:15px}
+      .invoice-row.grand-total span:last-child{font-size:17px}
+      .invoice-row.promo span:last-child{color:#e53e3e}
+      .invoice-summary .subtotal span:last-child{color:#666;font-weight:400}
+    </style></head><body>${clone.innerHTML}</body></html>`)
+  win.document.close()
+  setTimeout(() => { win.print() }, 300)
 })
 $('continue-btn')?.addEventListener('click', () => {
   confirmationModal.classList.remove('open')
@@ -659,10 +816,173 @@ document.querySelectorAll('input[name="delivery-type"]').forEach(radio => {
   })
 })
 
+// --- Promo Code ---
+function applyPromoCode() {
+  const inputEl = $('promo-code')
+  const statusEl = $('promo-status')
+  const code = (inputEl?.value || '').trim().toUpperCase()
+  if (!code) {
+    if (statusEl) { statusEl.textContent = 'Please enter a promo code'; statusEl.className = 'promo-status error' }
+    return
+  }
+
+  // Look up code
+  const promo = promoCodes[code]
+  if (!promo || promo.active === false) {
+    if (statusEl) { statusEl.textContent = 'Invalid or expired promo code'; statusEl.className = 'promo-status error' }
+    return
+  }
+
+  const subtotal = getSubtotal()
+  if (subtotal < (promo.minOrder || 0)) {
+    if (statusEl) { statusEl.textContent = `Minimum order of ₹${promo.minOrder} required`; statusEl.className = 'promo-status error' }
+    return
+  }
+
+  // Check product eligibility
+  const cartItems = getCart()
+  if (!promo.type || promo.type === 'percent' || promo.type === 'flat') {
+    const eligible = cartItems.some(item => {
+      const product = products.find(p => p.name === item.name)
+      return product && product.promos && product.promos.includes(code)
+    })
+    if (!eligible) {
+      if (statusEl) { statusEl.textContent = 'No eligible items in your cart for this promo'; statusEl.className = 'promo-status error' }
+      return
+    }
+    // Margin guard: ensure promo doesn't cause loss on any eligible item
+    if (promo.type === 'percent') {
+      for (const item of cartItems) {
+        const product = products.find(p => p.name === item.name)
+        if (!product || !product.costPrice) continue
+        if (!product.promos || !product.promos.includes(code)) continue
+        const discountedPrice = product.price * (1 - promo.value / 100)
+        if (discountedPrice <= product.costPrice) {
+          if (statusEl) { statusEl.textContent = 'Promo not applicable on current cart'; statusEl.className = 'promo-status error' }
+          return
+        }
+      }
+    } else if (promo.type === 'flat') {
+      let totalPrice = 0, totalCost = 0
+      for (const item of cartItems) {
+        const product = products.find(p => p.name === item.name)
+        if (!product || !product.costPrice) continue
+        if (!product.promos || !product.promos.includes(code)) continue
+        totalPrice += product.price * item.quantity
+        totalCost += product.costPrice * item.quantity
+      }
+      if (totalPrice > 0 && (totalPrice - promo.value) <= totalCost) {
+        if (statusEl) { statusEl.textContent = 'Promo not applicable on current cart'; statusEl.className = 'promo-status error' }
+        return
+      }
+    }
+  } else if (promo.type === 'free_item') {
+    const freeProduct = products.find(p => p.name.toLowerCase() === (promo.itemName || '').toLowerCase())
+    if (!freeProduct) {
+      if (statusEl) { statusEl.textContent = 'Free item not available right now'; statusEl.className = 'promo-status error' }
+      return
+    }
+    const stock = typeof freeProduct.stock === 'number' ? freeProduct.stock : (freeProduct.inStock ? 10 : 0)
+    if (stock <= 0) {
+      if (statusEl) { statusEl.textContent = 'Sorry, the free item is out of stock'; statusEl.className = 'promo-status error' }
+      return
+    }
+    // Margin guard: ensure basket margin covers the free item's cost
+    if (freeProduct.costPrice) {
+      let totalPrice = 0, totalCost = 0
+      for (const item of cartItems) {
+        const product = products.find(p => p.name === item.name)
+        if (!product || !product.costPrice) continue
+        totalPrice += product.price * item.quantity
+        totalCost += product.costPrice * item.quantity
+      }
+      if (totalPrice > 0 && (totalPrice - totalCost) < freeProduct.costPrice) {
+        if (statusEl) { statusEl.textContent = 'Add more items to cover the cost of your free item'; statusEl.className = 'promo-status error' }
+        return
+      }
+    }
+  }
+
+  appliedPromo = { code, ...promo }
+  if (statusEl) { statusEl.textContent = `✅ ${promo.description || 'Promo applied!'}`; statusEl.className = 'promo-status success' }
+  if (inputEl) inputEl.value = code
+  const suggestionsEl = $('promo-suggestions')
+  if (suggestionsEl) suggestionsEl.innerHTML = ''
+  renderCheckoutSummary()
+  showToast(`Promo ${code} applied!`)
+}
+
+function removePromo() {
+  appliedPromo = null
+  const statusEl = $('promo-status')
+  const inputEl = $('promo-code')
+  if (statusEl) { statusEl.textContent = 'Promo removed'; statusEl.className = 'promo-status info' }
+  if (inputEl) inputEl.value = ''
+  renderCheckoutSummary()
+  renderPromoSuggestions()
+}
+
+function renderPromoSuggestions() {
+  const container = $('promo-suggestions')
+  if (!container) return
+  if (appliedPromo) { container.innerHTML = ''; return }
+  const subtotal = getSubtotal()
+  const cartItems = getCart()
+  if (cartItems.length === 0) { container.innerHTML = ''; return }
+
+  const chips = []
+  for (const [code, promo] of Object.entries(promoCodes)) {
+    if (promo.active === false) continue
+    if (subtotal < (promo.minOrder || 0)) continue
+
+    // Product eligibility check
+    let isEligible = false
+    if (promo.type === 'free_item') {
+      const freeProduct = products.find(p => p.name.toLowerCase() === (promo.itemName || '').toLowerCase())
+      if (!freeProduct) continue
+      const stock = typeof freeProduct.stock === 'number' ? freeProduct.stock : (freeProduct.inStock ? 10 : 0)
+      if (stock <= 0) continue
+      isEligible = true
+    } else {
+      isEligible = cartItems.some(item => {
+        const product = products.find(p => p.name === item.name)
+        return product && product.promos && product.promos.includes(code)
+      })
+    }
+    if (!isEligible) continue
+
+    const label = promo.type === 'percent' ? `${promo.value}% off` :
+      promo.type === 'flat' ? `₹${promo.value} off` :
+      `Free ${promo.itemName || 'item'}`
+    chips.push({ code, label })
+  }
+
+  if (chips.length === 0) { container.innerHTML = ''; return }
+
+  container.innerHTML = `
+    <div class="promo-suggestions-label">Available promos</div>
+    <div class="promo-chips">
+      ${chips.map(c => `<button class="promo-chip" onclick="applyPromoCodeBySuggestion('${c.code}')">🏷️ ${c.code} — ${c.label}</button>`).join('')}
+    </div>
+  `
+}
+
+window.applyPromoCode = applyPromoCode
+window.removePromo = removePromo
+window.applyPromoCodeBySuggestion = (code) => {
+  const inputEl = $('promo-code')
+  if (inputEl) inputEl.value = code
+  applyPromoCode()
+}
+window.reorderItems = reorderItems
+
 // --- Load data from Firebase ---
 async function loadData() {
   try {
-    const data = await fetchFirebaseData()
+    const [data, codes] = await Promise.all([
+      fetchFirebaseData(),
+      fetchPromoCodes(),
+    ])
     if (data) {
       if (data.siteConfig) siteConfig = data.siteConfig
       if (data.products) products = data.products
@@ -670,6 +990,7 @@ async function loadData() {
       renderCategories()
       checkStoreStatus()
     }
+    promoCodes = codes || {}
   } catch (e) {
     console.error('Failed to load Firebase data:', e)
   }
@@ -719,6 +1040,12 @@ function init() {
 
   // Close checkout
   $('close-checkout')?.addEventListener('click', closeCheckout)
+
+  // Promo code
+  $('promo-apply-btn')?.addEventListener('click', applyPromoCode)
+  $('promo-code')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); applyPromoCode() }
+  })
 
   // Quick add via product grid
   document.addEventListener('click', (e) => {
