@@ -667,7 +667,8 @@ checkoutForm?.addEventListener('submit', (e) => {
   e.preventDefault()
   const name = $('name')?.value.trim()
   const phone = $('phone')?.value.trim()
-  const deliveryType = document.querySelector('input[name="delivery-type"]:checked')?.value || 'pickup'
+  const deliveryDisabled = siteConfig.deliveryEnabled === false
+  const deliveryType = deliveryDisabled ? 'pickup' : (document.querySelector('input[name="delivery-type"]:checked')?.value || 'pickup')
   const floor = $('floor')?.value.trim()
   const room = $('room')?.value.trim()
   const instructions = $('instructions')?.value.trim()
@@ -1259,6 +1260,7 @@ async function loadData() {
       renderProducts()
       renderCategories()
       checkStoreStatus()
+      applyDeliveryAvailability()
     }
     renderPromoPublicity()
   } catch (e) {
@@ -1269,6 +1271,17 @@ async function loadData() {
 function checkStoreStatus() {
   if (siteConfig.storeOpen === false && closedOverlay) {
     closedOverlay.classList.remove('hidden')
+  }
+}
+
+function applyDeliveryAvailability() {
+  const enabled = siteConfig.deliveryEnabled !== false
+  const el = $('delivery-option-delivery')
+  if (el) el.classList.toggle('hidden', !enabled)
+  if (!enabled) {
+    const pickup = document.querySelector('input[name="delivery-type"][value="pickup"]')
+    if (pickup) pickup.checked = true
+    $('delivery-details').style.display = 'none'
   }
 }
 

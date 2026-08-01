@@ -1820,6 +1820,14 @@
                             <h3>Delivery</h3>
                             <p class="section-desc">Set delivery hours and fees.</p>
                             <div class="setting-row">
+                                <label>Delivery Available</label>
+                                <label class="toggle" title="Enable/disable room delivery">
+                                    <input type="checkbox" id="delivery-enabled-toggle"
+                                        onchange="toggleDeliveryEnabled()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-row">
                                 <label>Delivery Hours</label>
                                 <input class="setting-input" type="text" id="set-hours" placeholder="10 PM - 3 AM"
                                     oninput="onSettingChange()">
@@ -2104,6 +2112,7 @@
             <p>🕐 <b>Delivery Hours:</b> ${siteConfig.deliveryHours || 'Not set'}</p>
             <p>📢 <b>Announcement:</b> ${siteConfig.announcement || '(none)'}</p>
             <p>💰 <b>Delivery Fee:</b> ₹${siteConfig.deliveryFee || 0}</p>
+            <p>🚚 <b>Delivery:</b> ${siteConfig.deliveryEnabled !== false ? 'Available' : 'Pickup only'}</p>
             <p>🛒 <b>Min Order:</b> ₹${siteConfig.minOrder || 0}</p>
         `;
         }
@@ -2167,6 +2176,8 @@
             document.getElementById('set-announcement').value = siteConfig.announcement || '';
             const sheetEl = document.getElementById('set-sheeturl');
             if (sheetEl) sheetEl.value = siteConfig.sheetUrl || '';
+            const delEl = document.getElementById('delivery-enabled-toggle');
+            if (delEl) delEl.checked = siteConfig.deliveryEnabled !== false;
         }
 
         // ===== PRODUCT CRUD =====
@@ -2494,6 +2505,22 @@
                 showToast(isOpen ? '🏪 Store opened!' : '🔒 Store closed!');
             } catch (e) {
                 showToast('Failed to update store status', true);
+            }
+        }
+
+        async function toggleDeliveryEnabled() {
+            const enabled = document.getElementById('delivery-enabled-toggle').checked;
+            siteConfig.deliveryEnabled = enabled;
+            renderConfigPreview();
+            try {
+                await fetch(`${FB_URL}/siteConfig/deliveryEnabled.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(enabled)
+                });
+                showToast(enabled ? '🚚 Delivery enabled!' : '🚫 Delivery disabled — pickup only');
+            } catch (e) {
+                showToast('Failed to update delivery setting', true);
             }
         }
 
@@ -2892,6 +2919,7 @@
         window.onSettingChange = onSettingChange;
         window.renderProductList = renderProductList;
         window.toggleStoreOpen = toggleStoreOpen;
+        window.toggleDeliveryEnabled = toggleDeliveryEnabled;
         window.renderDailySummary = renderDailySummary;
         window.renderBestSellers = renderBestSellers;
         window.showAddPromoModal = showAddPromoModal;
