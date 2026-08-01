@@ -117,6 +117,28 @@ function getStockInfo(product) {
   }
 }
 
+function getRemainingStock(product) {
+  const info = getStockInfo(product)
+  if (!info.available) return 0
+  const inCart = getCart()
+    .filter(i => i.name === product.name)
+    .reduce((sum, i) => sum + i.quantity, 0)
+  return Math.max(0, info.stock - inCart)
+}
+
+function tryAddToCart(name, price, qty = 1) {
+  const product = products.find(p => p.name === name)
+  if (!product) return false
+  const remaining = getRemainingStock(product)
+  if (remaining < qty) {
+    const left = getStockInfo(product).stock
+    showToast(left > 0 ? `Only ${left} left in stock` : `${name} is sold out`, 'error')
+    return false
+  }
+  addItem(name, price, qty)
+  return true
+}
+
 // --- Render products ---
 function renderProducts() {
   if (!productGrid) return
@@ -222,15 +244,17 @@ function openDetail(product) {
   const addBtn = $('detail-add-btn')
 
   if (qtyMinus && qtyPlus && qtyValue && addBtn) {
+    const maxQty = getRemainingStock(detailProduct)
     function updateQtyUI() {
       qtyValue.textContent = detailQty
       qtyMinus.disabled = detailQty <= 1
+      qtyPlus.disabled = detailQty >= maxQty
       addBtn.textContent = `Add to Cart — ${formatPrice(product.price * detailQty)}`
     }
     qtyMinus.addEventListener('click', () => { if (detailQty > 1) { detailQty--; updateQtyUI() } })
-    qtyPlus.addEventListener('click', () => { detailQty++; updateQtyUI() })
+    qtyPlus.addEventListener('click', () => { if (detailQty < maxQty) { detailQty++; updateQtyUI() } })
     addBtn.addEventListener('click', () => {
-      addItem(product.name, product.price, detailQty)
+      if (!tryAddToCart(product.name, product.price, detailQty)) return
       showToast(`${product.name} added to cart!`)
       closeDetail()
     })
@@ -293,6 +317,14 @@ function renderCartSheet() {
       const dir = parseInt(btn.dataset.dir)
       const item = getCart()[idx]
       if (!item) return
+      if (dir > 0) {
+        const product = products.find(p => p.name === item.name)
+        if (product && getRemainingStock(product) <= 0) {
+          const left = getStockInfo(product).stock
+          showToast(left > 0 ? `Only ${left} left in stock` : `${item.name} is sold out`, 'error')
+          return
+        }
+      }
       const newQty = item.quantity + dir
       if (newQty <= 0) {
         removeItem(idx)
@@ -457,9 +489,15 @@ function reorderItems(itemsStr) {
     const items = JSON.parse(decodeURIComponent(itemsStr))
     if (!items.length) return
     clearCart()
-    items.forEach(item => addItem(item.name, item.price, item.quantity))
+    let clamped = false
+    items.forEach(item => {
+      const product = products.find(p => p.name === item.name)
+      const qty = product ? Math.min(item.quantity, getRemainingStock(product)) : 0
+      if (qty < item.quantity) clamped = true
+      if (qty > 0) addItem(item.name, item.price, qty)
+    })
     updateCartFab()
-    showToast('Items added to cart!')
+    showToast(clamped ? 'Some items limited by stock' : 'Items added to cart!')
   } catch (e) {
     showToast('Failed to reorder', 'error')
   }
@@ -559,7 +597,7 @@ function renderUpsell() {
 
   section.querySelectorAll('.upsell-item').forEach(el => {
     el.addEventListener('click', () => {
-      addItem(el.dataset.name, el.dataset.price)
+      if (!tryAddToCart(el.dataset.name, el.dataset.price)) return
       showToast(`${el.dataset.name} added!`)
       el.style.opacity = '0.4'
       el.style.pointerEvents = 'none'
@@ -604,6 +642,18 @@ checkoutForm?.addEventListener('submit', (e) => {
   let cartItems = getCart()
   if (freeItem) {
     cartItems = [...cartItems, { name: freeItem.name, price: 0, quantity: 1 }]
+  }
+
+  const shortfall = []
+  for (const item of cartItems) {
+    const product = products.find(p => p.name === item.name)
+    if (!product) continue
+    const left = getStockInfo(product).stock
+    if (item.quantity > left) shortfall.push(`${item.name} (only ${left} left)`)
+  }
+  if (shortfall.length > 0) {
+    showToast('Stock changed: ' + shortfall[0], 'error')
+    return
   }
 
   const orderId = 'AC' + Date.now().toString().slice(-5)
@@ -1220,7 +1270,7 @@ function init() {
     const addBtn = e.target.closest('.card-add')
     if (addBtn) {
       e.stopPropagation()
-      addItem(addBtn.dataset.name, addBtn.dataset.price)
+      if (!tryAddToCart(addBtn.dataset.name, addBtn.dataset.price)) return
       showToast(`${addBtn.dataset.name} added to cart!`)
       updateCartFab()
     }
