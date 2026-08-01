@@ -67,6 +67,66 @@ function bodyLock(on) {
   document.body.classList.toggle('modal-open', on)
 }
 
+// --- Sheet history stack ---
+const sheetStack = []
+
+function openSheetUI(name) {
+  switch (name) {
+    case 'detail': detailSheet.classList.add('open'); break
+    case 'cart': cartSheet.classList.add('open'); break
+    case 'checkout': checkoutModal.classList.add('open'); break
+    case 'confirm': confirmationModal.classList.add('open'); break
+  }
+  bodyLock(true)
+}
+
+function closeSheetUI(name) {
+  switch (name) {
+    case 'detail': detailSheet.classList.remove('open'); break
+    case 'cart': cartSheet.classList.remove('open'); break
+    case 'checkout': checkoutModal.classList.remove('open'); break
+    case 'confirm': confirmationModal.classList.remove('open'); break
+  }
+  bodyLock(false)
+}
+
+function pushSheet(name) {
+  sheetStack.push(name)
+  history.pushState({ sheet: name }, '')
+}
+
+function closeSheet(name) {
+  closeSheetUI(name)
+  const idx = sheetStack.lastIndexOf(name)
+  if (idx === -1 || idx !== sheetStack.length - 1) return
+  sheetStack.pop()
+  history.back()
+}
+
+function swapSheet(from, to) {
+  closeSheetUI(from)
+  if (sheetStack[sheetStack.length - 1] === from) {
+    sheetStack[sheetStack.length - 1] = to
+    history.replaceState({ sheet: to }, '')
+  } else {
+    pushSheet(to)
+  }
+}
+
+function closeAllSheets() {
+  const n = sheetStack.length
+  sheetStack.length = 0
+  closeSheetUI('detail')
+  closeSheetUI('cart')
+  closeSheetUI('checkout')
+  closeSheetUI('confirm')
+  if (n > 0) history.go(-n)
+}
+
+window.addEventListener('popstate', () => {
+  closeSheetUI(sheetStack.pop() || '')
+})
+
 // --- Favorites ---
 function loadFavorites() {
   try {
@@ -234,8 +294,8 @@ function openDetail(product) {
       ` : ''}
     </div>
   `
-  detailSheet.classList.add('open')
-  bodyLock(true)
+  openSheetUI('detail')
+  pushSheet('detail')
 
   // Qty controls
   const qtyMinus = $('qty-minus')
@@ -262,8 +322,7 @@ function openDetail(product) {
 }
 
 function closeDetail() {
-  detailSheet.classList.remove('open')
-  bodyLock(false)
+  closeSheet('detail')
 }
 
 // --- Cart Sheet ---
@@ -350,13 +409,12 @@ function renderCartSheet() {
 
 function openCartSheet() {
   renderCartSheet()
-  cartSheet.classList.add('open')
-  bodyLock(true)
+  openSheetUI('cart')
+  pushSheet('cart')
 }
 
 function closeCartSheet() {
-  cartSheet.classList.remove('open')
-  bodyLock(false)
+  closeSheet('cart')
 }
 
 // --- Cart FAB ---
@@ -510,9 +568,8 @@ function openCheckout(prefillCode) {
   if (statusEl) { statusEl.textContent = ''; statusEl.className = 'promo-status' }
   const inputEl = $('promo-code')
   if (inputEl) inputEl.value = prefillCode || ''
-  closeCartSheet()
-  checkoutModal.classList.add('open')
-  bodyLock(true)
+  swapSheet('cart', 'checkout')
+  openSheetUI('checkout')
   if (prefillCode) {
     applyPromoCode()
   } else {
@@ -521,8 +578,7 @@ function openCheckout(prefillCode) {
 }
 
 function closeCheckout() {
-  checkoutModal.classList.remove('open')
-  bodyLock(false)
+  closeSheet('checkout')
 }
 
 function renderCheckoutSummary() {
@@ -748,12 +804,11 @@ checkoutForm?.addEventListener('submit', (e) => {
   clearCart()
   updateCartFab()
   renderProducts()
-  closeCheckout()
+  swapSheet('checkout', 'confirm')
 
   // Show confirmation
   renderInvoiceCard({ orderId, cartItems, subtotal, discount, fee, total, name, phone, deliveryType, floor, room, promo: appliedPromo })
-  confirmationModal.classList.add('open')
-  bodyLock(true)
+  openSheetUI('confirm')
 })
 
 // --- Confirmation ---
@@ -918,10 +973,7 @@ $('print-invoice-btn')?.addEventListener('click', () => {
   win.focus()
   setTimeout(() => { win.print(); win.close() }, 400)
 })
-$('continue-btn')?.addEventListener('click', () => {
-  confirmationModal.classList.remove('open')
-  bodyLock(false)
-})
+$('continue-btn')?.addEventListener('click', () => closeSheet('confirm'))
 
 // --- Search ---
 searchToggle?.addEventListener('click', () => {
@@ -1233,10 +1285,7 @@ function init() {
   detailOverlay?.addEventListener('click', closeDetail)
   cartOverlay?.addEventListener('click', closeCartSheet)
   checkoutOverlay?.addEventListener('click', closeCheckout)
-  confirmOverlay?.addEventListener('click', () => {
-    confirmationModal.classList.remove('open')
-    bodyLock(false)
-  })
+  confirmOverlay?.addEventListener('click', () => closeSheet('confirm'))
 
   // Tab navigation
   tabs.forEach(tab => {
@@ -1286,14 +1335,11 @@ function init() {
 
   // Global overlay clicks for modals
   document.querySelectorAll('.modal > .modal-overlay, .bottom-sheet > .sheet-overlay').forEach(el => {
-    el.addEventListener('click', () => {
-      closeDetail()
-      closeCartSheet()
-      closeCheckout()
-      confirmationModal.classList.remove('open')
-      bodyLock(false)
-    })
+    el.addEventListener('click', closeAllSheets)
   })
+
+  // Clean up any stale sheet history entry left from a refresh
+  if (history.state && history.state.sheet) history.replaceState(null, '')
 }
 
 init()
