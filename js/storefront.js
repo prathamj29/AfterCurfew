@@ -1244,7 +1244,7 @@ function init() {
   })
 
   // Cart sheet checkout
-  checkoutBtn?.addEventListener('click', openCheckout)
+  checkoutBtn?.addEventListener('click', () => openCheckout())
 
   // Clear cart
   $('cart-clear')?.addEventListener('click', () => {
