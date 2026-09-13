@@ -642,6 +642,8 @@
             width: 100%;
             max-width: 480px;
             margin: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
         }
 
         .modal-box h3 {
@@ -702,6 +704,12 @@
 
         .btn-primary:hover {
             background: var(--accent-hover);
+        }
+
+        .modal-box .btn-row button:disabled,
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .btn-secondary {
@@ -1609,7 +1617,7 @@
             <input type="password" id="gh-token" placeholder="Personal Access Token (ghp_...)">
             <button class="btn-login" onclick="login()">Login to Dashboard</button>
             <p class="help-text">
-                Token needs <b>repo</b> scope.
+                Classic token needs <b>repo</b> scope. Fine-grained token needs <b>Contents: Read and write</b> on this repo.
                 <a href="https://github.com/settings/tokens" target="_blank">Generate Token →</a>
             </p>
         </div>
@@ -1984,7 +1992,7 @@
                 <input type="file" id="m-image-file" accept="image/*" style="display:none"
                     onchange="handleImageUpload(this)">
                 <label class="bg-removal-toggle">
-                    <input type="checkbox" id="bg-remove-toggle" checked>
+                    <input type="checkbox" id="bg-remove-toggle" checked onchange="onBgToggleChange()">
                     <div class="toggle-info">
                         <span class="toggle-label">✨ Remove Background</span>
                         <span class="toggle-desc">Auto-remove image background using AI (runs in browser)</span>
@@ -2004,27 +2012,31 @@
 
     <script type="module">
         // ===== BACKGROUND REMOVAL LIBRARY (non-blocking) =====
-        let imglyRemoveBackground;
-        import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm')
-            .then(mod => { imglyRemoveBackground = mod.default; })
-            .catch(() => console.warn('Background removal not available'));
+        const bgRemovalReady = import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm')
+            .then(mod => mod.removeBackground || mod.default || null)
+            .catch(() => { console.warn('Background removal not available'); return null; });
 
         // ===== STATE =====
         let products = [];
-        let processedImageBlob = null; // Stores the bg-removed image blob
         let siteConfig = {};
-        let fileSha = '';
-        let appJsContent = '';
-        let editingIndex = -1;
+        let promoCodes = {};
+        let editingId = null;
+        let editingPromoCode = null;
         let hasUnsavedChanges = false;
         let savedStock = {};
-        let promoCodes = {};
-        let promoEditingIndex = -1;
+        let selectedImage = null; // { blob, ext, name, url } resized original chosen by the user
+        let processedImage = null; // { blob, ext, url } background-removed version
+        let bgJobId = 0;
+        let imageProcessing = false;
         let config = {
             user: localStorage.getItem('ac_user') || '',
             repo: localStorage.getItem('ac_repo') || '',
             token: localStorage.getItem('ac_token') || ''
         };
+
+        const FB_URL = "https://aftercurfew-722d4-default-rtdb.asia-southeast1.firebasedatabase.app";
+        const MAX_IMAGE_DIMENSION = 1024;
+        const BG_REMOVAL_TIMEOUT_MS = 120000;
 
         // Init saved creds
         if (config.user) {
@@ -2033,18 +2045,125 @@
             document.getElementById('gh-token').value = config.token;
         }
 
+        // ===== HELPERS =====
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function getStock(p) {
+            return typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0);
+        }
+
+        function generateId() {
+            if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+            return 'p-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+        }
+
+        async function fbRequest(path, method = 'GET', body) {
+            const options = { method };
+            if (body !== undefined) {
+                options.headers = { 'Content-Type': 'application/json' };
+                options.body = JSON.stringify(body);
+            }
+            const res = await fetch(`${FB_URL}/${path}.json`, options);
+            if (!res.ok) {
+                let detail = res.statusText;
+                try { detail = (await res.json()).error || detail; } catch (e) { }
+                throw new Error(`Database ${method} failed (${res.status}${detail ? ': ' + detail : ''})`);
+            }
+            return res.json();
+        }
+
+        // Product writes always start from the latest server copy so we never overwrite
+        // stock that customers have bought since the admin page was loaded.
+        let productWriteQueue = Promise.resolve();
+        function mutateProducts(mutator) {
+            const run = productWriteQueue.then(async () => {
+                const latest = await fbRequest('products');
+                const list = (Array.isArray(latest) ? latest : Object.values(latest || {})).filter(Boolean);
+                const result = mutator(list);
+                if (result === false) return false;
+                await fbRequest('products', 'PUT', list);
+                products = list;
+                return true;
+            });
+            productWriteQueue = run.catch(() => { });
+            return run.finally(() => renderAll());
+        }
+
+        function findProduct(list, id) {
+            return list.find(p => p.id === id);
+        }
+
         // ===== AUTH =====
+        function normalizeRepo(user, repo) {
+            let cleaned = repo.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');
+            if (cleaned.includes('/')) {
+                const [owner, name] = cleaned.split('/');
+                return { user: owner, repo: name };
+            }
+            return { user, repo: cleaned };
+        }
+
+        async function describeGitHubError(res) {
+            let message = '';
+            try { message = (await res.json()).message || ''; } catch (e) { }
+            if (res.status === 401) return 'GitHub token is invalid or expired. Log out and log in again with a new token.';
+            if (res.status === 403 && /rate limit/i.test(message)) return 'GitHub API rate limit reached. Try again in a few minutes.';
+            if (res.status === 403) return `GitHub token does not have write access to ${config.user}/${config.repo}. Classic tokens need the "repo" scope; fine-grained tokens need "Contents: Read and write" on this repository.`;
+            if (res.status === 404) return `Repository ${config.user}/${config.repo} not found, or the token cannot access it. Check the username, repository name and token permissions.`;
+            if (res.status === 413) return 'Image is too large for GitHub. Try a smaller image.';
+            return `GitHub error ${res.status}${message ? ': ' + message : ''}`;
+        }
+
+        function githubHeaders() {
+            return {
+                'Authorization': `Bearer ${config.token}`,
+                'Accept': 'application/vnd.github+json',
+                'Content-Type': 'application/json'
+            };
+        }
+
+        async function verifyGitHubAccess() {
+            const res = await fetch(`https://api.github.com/repos/${encodeURIComponent(config.user)}/${encodeURIComponent(config.repo)}`, { headers: githubHeaders() });
+            if (!res.ok) throw Object.assign(new Error(await describeGitHubError(res)), { fatal: true });
+            const data = await res.json();
+            if (data.permissions && data.permissions.push === false) {
+                throw Object.assign(new Error(`Your GitHub account cannot push to ${config.user}/${config.repo}.`), { fatal: true });
+            }
+        }
+
         async function login() {
-            const user = document.getElementById('gh-username').value.trim();
-            const repo = document.getElementById('gh-repo').value.trim();
+            const rawUser = document.getElementById('gh-username').value.trim();
+            const rawRepo = document.getElementById('gh-repo').value.trim();
             const token = document.getElementById('gh-token').value.trim();
-            if (!user || !repo || !token) return alert('Please fill all fields');
+            if (!rawUser || !rawRepo || !token) return alert('Please fill all fields');
+            const { user, repo } = normalizeRepo(rawUser, rawRepo);
+            config = { user, repo, token };
+
+            const btn = document.querySelector('.btn-login');
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+            let warning = '';
+            try {
+                await verifyGitHubAccess();
+            } catch (e) {
+                if (e.fatal) {
+                    btn.disabled = false;
+                    btn.textContent = 'Login to Dashboard';
+                    return alert(e.message);
+                }
+                warning = 'Could not reach GitHub to verify token. Image uploads may fail.';
+            }
+            btn.disabled = false;
+            btn.textContent = 'Login to Dashboard';
+
             localStorage.setItem('ac_user', user);
             localStorage.setItem('ac_repo', repo);
             localStorage.setItem('ac_token', token);
-            config = { user, repo, token };
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
+            if (warning) showToast(warning, true);
             await fetchData();
         }
 
@@ -2052,21 +2171,18 @@
             localStorage.removeItem('ac_user');
             localStorage.removeItem('ac_repo');
             localStorage.removeItem('ac_token');
+            hasUnsavedChanges = false;
             location.reload();
         }
 
         // ===== DATA FETCH =====
-        const FB_URL = "https://aftercurfew-722d4-default-rtdb.asia-southeast1.firebasedatabase.app";
-
         async function fetchData() {
             try {
-                const res = await fetch(FB_URL + '/.json');
-                if (!res.ok) throw new Error('Failed to fetch from Firebase');
-                const data = await res.json();
-
+                const data = await fbRequest('');
                 if (data) {
                     siteConfig = data.siteConfig || {};
-                    products = data.products || [];
+                    const rawProducts = data.products || [];
+                    products = (Array.isArray(rawProducts) ? rawProducts : Object.values(rawProducts)).filter(Boolean);
                     promoCodes = data.promoCodes || {};
                 }
 
@@ -2078,9 +2194,6 @@
                 document.getElementById('dashboard').style.display = 'none';
             }
         }
-
-        // Parse Data is no longer needed since JSON comes directly from Firebase
-        function parseData() { }
 
         // ===== RENDER =====
         function renderAll() {
@@ -2094,9 +2207,9 @@
 
         function renderStats() {
             document.getElementById('stat-total').textContent = products.length;
-            const lowStock = products.filter(p => { const s = typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0); return s > 0 && s <= 3; });
-            const inStock = products.filter(p => (typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0)) > 3);
-            const outStock = products.filter(p => (typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0)) === 0);
+            const lowStock = products.filter(p => { const s = getStock(p); return s > 0 && s <= 3; });
+            const inStock = products.filter(p => getStock(p) > 3);
+            const outStock = products.filter(p => getStock(p) === 0);
             document.getElementById('stat-instock').textContent = inStock.length;
             document.getElementById('stat-outstock').textContent = outStock.length;
             const lowEl = document.getElementById('stat-lowstock');
@@ -2108,24 +2221,24 @@
         function renderConfigPreview() {
             const el = document.getElementById('config-preview');
             el.innerHTML = `
-            <p>📱 <b>WhatsApp:</b> ${siteConfig.ownerPhone || 'Not set'}</p>
-            <p>🕐 <b>Delivery Hours:</b> ${siteConfig.deliveryHours || 'Not set'}</p>
-            <p>📢 <b>Announcement:</b> ${siteConfig.announcement || '(none)'}</p>
-            <p>💰 <b>Delivery Fee:</b> ₹${siteConfig.deliveryFee || 0}</p>
+            <p>📱 <b>WhatsApp:</b> ${escapeHtml(siteConfig.ownerPhone || 'Not set')}</p>
+            <p>🕐 <b>Delivery Hours:</b> ${escapeHtml(siteConfig.deliveryHours || 'Not set')}</p>
+            <p>📢 <b>Announcement:</b> ${escapeHtml(siteConfig.announcement || '(none)')}</p>
+            <p>💰 <b>Delivery Fee:</b> ₹${escapeHtml(siteConfig.deliveryFee || 0)}</p>
             <p>🚚 <b>Delivery:</b> ${siteConfig.deliveryEnabled !== false ? 'Available' : 'Pickup only'}</p>
-            <p>🛒 <b>Min Order:</b> ₹${siteConfig.minOrder || 0}</p>
+            <p>🛒 <b>Min Order:</b> ₹${escapeHtml(siteConfig.minOrder || 0)}</p>
         `;
         }
 
         function renderProductList() {
             const list = document.getElementById('product-list');
             const q = (document.getElementById('product-search')?.value || '').toLowerCase();
-            let filtered = q ? products.filter(p => p.name.toLowerCase().includes(q)) : [...products];
+            let filtered = q ? products.filter(p => (p.name || '').toLowerCase().includes(q)) : [...products];
 
             // Sort: in-stock first (by quantity desc), then out-of-stock
             filtered.sort((a, b) => {
-                const stockA = typeof a.stock === 'number' ? a.stock : (a.inStock ? 10 : 0);
-                const stockB = typeof b.stock === 'number' ? b.stock : (b.inStock ? 10 : 0);
+                const stockA = getStock(a);
+                const stockB = getStock(b);
                 if (stockA === 0 && stockB === 0) return 0;
                 if (stockA === 0) return 1;
                 if (stockB === 0) return -1;
@@ -2136,39 +2249,40 @@
                 list.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px;">No products found.</p>';
                 return;
             }
-            list.innerHTML = filtered.map((p, i) => {
-                const realIndex = products.indexOf(p);
-                const stock = typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0);
+            list.innerHTML = filtered.map(p => {
+                const id = escapeHtml(p.id);
+                const stock = getStock(p);
                 const stockColor = stock === 0 ? '#f87171' : stock <= 3 ? '#fbbf24' : '#34d399';
                 const stockLabel = stock === 0 ? '● Sold Out' : stock <= 3 ? '⚠ ' + stock + ' left' : '● ' + stock + ' in stock';
-                const promoBadges = (p.promos && p.promos.length > 0) ? p.promos.map(c => `<span style="display:inline-block;padding:1px 6px;border-radius:4px;background:var(--accent);color:#000;font-size:10px;font-weight:600;margin-right:3px;">${c}</span>`).join('') : '';
+                const promoBadges = (p.promos && p.promos.length > 0) ? p.promos.map(c => `<span style="display:inline-block;padding:1px 6px;border-radius:4px;background:var(--accent);color:#000;font-size:10px;font-weight:600;margin-right:3px;">${escapeHtml(c)}</span>`).join('') : '';
                 return `
             <div class="product-row">
-                <img src="${p.image}" class="p-img" onerror="this.src='https://placehold.co/56/1a1a1a/888?text=?'">
+                <img src="${escapeHtml(p.image)}" class="p-img" onerror="this.onerror=null;this.src='https://placehold.co/56/1a1a1a/888?text=?'">
                 <div class="p-details">
-                    <div class="p-name">${p.name}</div>
+                    <div class="p-name">${escapeHtml(p.name)}</div>
                     <div class="p-meta">
-                        <span>₹${p.price}${p.costPrice ? ` <span style="color:var(--text-dim);font-size:11px;">(cost: ₹${p.costPrice})</span>` : ''}</span>
+                        <span>₹${escapeHtml(p.price)}${p.costPrice ? ` <span style="color:var(--text-dim);font-size:11px;">(cost: ₹${escapeHtml(p.costPrice)})</span>` : ''}</span>
                         <span style="color:${p.costPrice ? ((p.price - p.costPrice) > 0 ? '#34d399' : '#f87171') : 'var(--text-dim)'};font-weight:600;">${p.costPrice ? '↗ ₹' + (p.price - p.costPrice) + ' profit' : 'No cost set'}</span>
                         <span style="color:${stockColor};font-weight:600;">${stockLabel}</span>
-                        <span>${p.category}</span>
+                        <span>${escapeHtml(p.category)}</span>
                         ${promoBadges ? `<span>${promoBadges}</span>` : ''}
                     </div>
                 </div>
                 <div class="p-actions">
-                    <input type="number" class="edit-field" value="${stock}" min="0" style="width:60px;text-align:center;" onchange="updateStock(${realIndex}, this.value)" title="Stock quantity">
+                    <input type="number" class="edit-field" value="${stock}" min="0" style="width:60px;text-align:center;" onchange="updateStock('${id}', this.value)" title="Stock quantity">
                     <label class="toggle" title="Toggle stock">
-                        <input type="checkbox" ${stock > 0 ? 'checked' : ''} onchange="toggleStock(${realIndex})">
+                        <input type="checkbox" ${stock > 0 ? 'checked' : ''} onchange="toggleStock('${id}')">
                         <span class="slider"></span>
                     </label>
-                    <button class="btn-icon" title="Edit" onclick="openEdit(${realIndex})">✏️</button>
-                    <button class="btn-icon danger" title="Delete" onclick="deleteProduct(${realIndex})">🗑️</button>
+                    <button class="btn-icon" title="Edit" onclick="openEdit('${id}')">✏️</button>
+                    <button class="btn-icon danger" title="Delete" onclick="deleteProduct('${id}')">🗑️</button>
                 </div>
             </div>`;
             }).join('');
         }
 
         function renderSettings() {
+            if (hasUnsavedChanges) return;
             document.getElementById('set-phone').value = siteConfig.ownerPhone || '';
             document.getElementById('set-hours').value = siteConfig.deliveryHours || '';
             document.getElementById('set-delfee').value = siteConfig.deliveryFee || 0;
@@ -2181,285 +2295,376 @@
         }
 
         // ===== PRODUCT CRUD =====
-        async function toggleStock(index) {
-            const current = typeof products[index].stock === 'number' ? products[index].stock : (products[index].inStock ? 10 : 0);
-            if (current > 0) {
-                savedStock[index] = current;
-                products[index].stock = 0;
-                products[index].inStock = false;
-            } else {
-                const restored = savedStock[index] !== undefined ? savedStock[index] : 10;
-                products[index].stock = restored;
-                products[index].inStock = true;
-            }
-            renderAll();
-
-            // Push entire array to avoid index mismatch
+        async function toggleStock(id) {
             try {
-                await fetch(`${FB_URL}/products.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(products)
+                await mutateProducts(list => {
+                    const p = findProduct(list, id);
+                    if (!p) throw new Error('Product no longer exists');
+                    const current = getStock(p);
+                    if (current > 0) {
+                        savedStock[id] = current;
+                        p.stock = 0;
+                        p.inStock = false;
+                    } else {
+                        const restored = savedStock[id] > 0 ? savedStock[id] : 10;
+                        p.stock = restored;
+                        p.inStock = true;
+                    }
                 });
                 showToast('Stock toggled instantly!');
             } catch (e) {
-                showToast('Failed to sync stock', true);
+                showToast('Failed to sync stock: ' + e.message, true);
             }
         }
 
-        async function updateStock(index, value) {
-            const stock = Math.max(0, parseInt(value) || 0);
-            products[index].stock = stock;
-            products[index].inStock = stock > 0;
-            renderAll();
-
-            // Push entire array to avoid index mismatch
+        async function updateStock(id, value) {
+            const stock = Math.max(0, parseInt(value, 10) || 0);
             try {
-                await fetch(`${FB_URL}/products.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(products)
+                await mutateProducts(list => {
+                    const p = findProduct(list, id);
+                    if (!p) throw new Error('Product no longer exists');
+                    p.stock = stock;
+                    p.inStock = stock > 0;
                 });
                 showToast('Stock amount updated!');
             } catch (e) {
-                showToast('Failed to sync stock', true);
+                showToast('Failed to sync stock: ' + e.message, true);
             }
         }
 
         async function toggleAllStock(val) {
-            products.forEach(p => { p.inStock = val; p.stock = val ? 10 : 0; });
-            renderAll();
+            const question = val
+                ? 'Mark every sold-out product as in stock? Products that already have stock keep their quantity.'
+                : 'Mark ALL products as sold out?';
+            if (!confirm(question)) return;
             showToast(val ? 'Setting all to In Stock...' : 'Setting all to Sold Out...');
-
-            // Push instantly
             try {
-                await fetch(`${FB_URL}/products.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(products)
+                await mutateProducts(list => {
+                    list.forEach(p => {
+                        const current = getStock(p);
+                        if (val) {
+                            if (current === 0) {
+                                p.stock = savedStock[p.id] > 0 ? savedStock[p.id] : 10;
+                                p.inStock = true;
+                            }
+                        } else {
+                            if (current > 0) savedStock[p.id] = current;
+                            p.stock = 0;
+                            p.inStock = false;
+                        }
+                    });
                 });
+                showToast(val ? 'All products in stock' : 'All products sold out');
             } catch (e) {
-                showToast('Failed to sync all products', true);
+                showToast('Failed to sync all products: ' + e.message, true);
             }
         }
 
-        async function deleteProduct(index) {
-            if (!confirm(`Delete "${products[index].name}"?`)) return;
-            products.splice(index, 1);
-            renderAll();
+        async function deleteProduct(id) {
+            const target = findProduct(products, id);
+            if (!target || !confirm(`Delete "${target.name}"?`)) return;
             showToast('Deleting...');
-
             try {
-                await fetch(`${FB_URL}/products.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(products)
+                await mutateProducts(list => {
+                    const idx = list.findIndex(p => p.id === id);
+                    if (idx === -1) return false;
+                    list.splice(idx, 1);
                 });
+                delete savedStock[id];
                 showToast('Product deleted globally');
             } catch (e) {
-                showToast('Failed to globally delete product', true);
+                showToast('Failed to delete product: ' + e.message, true);
             }
+        }
+
+        function resetImageState() {
+            bgJobId++;
+            if (selectedImage) URL.revokeObjectURL(selectedImage.url);
+            if (processedImage) URL.revokeObjectURL(processedImage.url);
+            selectedImage = null;
+            processedImage = null;
+            setImageProcessing(false);
+            document.getElementById('m-image-file').value = '';
+            document.getElementById('bg-comparison').style.display = 'none';
+            document.getElementById('bg-comparison').innerHTML = '';
+        }
+
+        function setCategoryValue(category) {
+            const select = document.getElementById('m-category');
+            if (category && ![...select.options].some(o => o.value === category)) {
+                const opt = document.createElement('option');
+                opt.value = category;
+                opt.textContent = category;
+                select.appendChild(opt);
+            }
+            select.value = category || 'cup-noodles';
         }
 
         function showAddModal() {
-            editingIndex = -1;
-            processedImageBlob = null;
+            editingId = null;
+            resetImageState();
             document.getElementById('modal-title').textContent = 'Add Product';
             document.getElementById('modal-save-btn').textContent = 'Add Product';
             document.getElementById('m-name').value = '';
             document.getElementById('m-desc').value = '';
             document.getElementById('m-price').value = '';
             document.getElementById('m-costprice').value = '';
-            document.getElementById('m-category').value = 'cup-noodles';
+            setCategoryValue('cup-noodles');
             document.getElementById('m-stock').value = '10';
             document.getElementById('m-image-url').value = '';
-            document.getElementById('m-image-file').value = '';
             document.getElementById('img-preview').innerHTML = '<span>Click to upload image</span>';
-            document.getElementById('bg-comparison').style.display = 'none';
             document.getElementById('bg-remove-toggle').checked = true;
             renderPromoCheckboxes([]);
             document.getElementById('product-modal').classList.remove('hidden');
         }
 
-        function openEdit(index) {
-            editingIndex = index;
-            processedImageBlob = null;
-            const p = products[index];
+        function openEdit(id) {
+            const p = findProduct(products, id);
+            if (!p) return;
+            editingId = id;
+            resetImageState();
             document.getElementById('modal-title').textContent = 'Edit Product';
             document.getElementById('modal-save-btn').textContent = 'Save Changes';
-            document.getElementById('m-name').value = p.name;
-            document.getElementById('m-desc').value = p.description;
-            document.getElementById('m-price').value = p.price;
+            document.getElementById('m-name').value = p.name || '';
+            document.getElementById('m-desc').value = p.description || '';
+            document.getElementById('m-price').value = p.price ?? '';
             document.getElementById('m-costprice').value = p.costPrice || '';
-            document.getElementById('m-category').value = p.category;
-            document.getElementById('m-stock').value = typeof p.stock === 'number' ? p.stock : (p.inStock ? 10 : 0);
-            document.getElementById('m-image-url').value = p.image;
-            document.getElementById('m-image-file').value = '';
-            document.getElementById('img-preview').innerHTML = `<img src="${p.image}" alt="Preview">`;
-            document.getElementById('bg-comparison').style.display = 'none';
+            setCategoryValue(p.category);
+            document.getElementById('m-stock').value = getStock(p);
+            document.getElementById('m-image-url').value = p.image || '';
+            document.getElementById('img-preview').innerHTML = p.image
+                ? `<img src="${escapeHtml(p.image)}" alt="Preview">`
+                : '<span>Click to upload image</span>';
             document.getElementById('bg-remove-toggle').checked = true;
-            // Load promo checkboxes
             renderPromoCheckboxes(p.promos || []);
             document.getElementById('product-modal').classList.remove('hidden');
         }
 
         function closeModal() {
+            resetImageState();
             document.getElementById('product-modal').classList.add('hidden');
+        }
+
+        function setImageProcessing(active) {
+            imageProcessing = active;
+            const btn = document.getElementById('modal-save-btn');
+            btn.disabled = active;
+            btn.textContent = active ? 'Processing image...' : (editingId ? 'Save Changes' : 'Add Product');
+        }
+
+        function canvasToBlob(canvas, type, quality) {
+            return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+        }
+
+        // Decode any browser-readable image, shrink it and re-encode it so uploads stay small.
+        async function prepareImage(blob) {
+            const url = URL.createObjectURL(blob);
+            try {
+                const img = new Image();
+                img.src = url;
+                await img.decode();
+                if (!img.naturalWidth || !img.naturalHeight) throw new Error('Empty image');
+                const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(img.naturalWidth, img.naturalHeight));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+                canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                const webp = await canvasToBlob(canvas, 'image/webp', 0.88);
+                if (webp && webp.type === 'image/webp') return { blob: webp, ext: 'webp' };
+                const png = await canvasToBlob(canvas, 'image/png');
+                if (!png) throw new Error('Could not encode image');
+                return { blob: png, ext: 'png' };
+            } finally {
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        function withTimeout(promise, ms, message) {
+            let timer;
+            const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); });
+            return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+        }
+
+        function showImagePreview(url, alt) {
+            document.getElementById('img-preview').innerHTML = `<img src="${url}" alt="${alt}">`;
         }
 
         // Handle image upload with optional background removal
         async function handleImageUpload(input) {
-            if (!input.files || !input.files[0]) return;
-            const file = input.files[0];
-            processedImageBlob = null;
+            const file = input.files && input.files[0];
+            input.value = '';
+            if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const originalSrc = e.target.result;
-                const preview = document.getElementById('img-preview');
-                const comparison = document.getElementById('bg-comparison');
-                const shouldRemoveBg = document.getElementById('bg-remove-toggle').checked;
+            resetImageState();
+            setImageProcessing(true);
+            try {
+                const prepared = await prepareImage(file);
+                selectedImage = { ...prepared, name: file.name, url: URL.createObjectURL(prepared.blob) };
+            } catch (err) {
+                console.error('Image decode failed:', err);
+                setImageProcessing(false);
+                document.getElementById('img-preview').innerHTML = '<span>Click to upload image</span>';
+                showToast('Could not read this image. Please use a JPG, PNG or WebP file.', true);
+                return;
+            }
 
-                preview.innerHTML = `<img src="${originalSrc}" alt="Preview">`;
-                comparison.style.display = 'none';
+            showImagePreview(selectedImage.url, 'Preview');
+            setImageProcessing(false);
+            if (document.getElementById('bg-remove-toggle').checked) await runBackgroundRemoval();
+        }
 
-                if (shouldRemoveBg) {
-                    // Show processing overlay
-                    preview.innerHTML = `
-                        <img src="${originalSrc}" alt="Preview" style="opacity:0.3">
-                        <div class="bg-processing-overlay">
-                            <div class="spinner"></div>
-                            <div class="proc-text">
-                                <strong>Removing Background...</strong>
-                                AI processing in your browser
-                            </div>
-                        </div>`;
+        async function runBackgroundRemoval() {
+            if (!selectedImage || processedImage) return;
+            const jobId = ++bgJobId;
+            const source = selectedImage;
+            const preview = document.getElementById('img-preview');
+            const comparison = document.getElementById('bg-comparison');
 
-                    try {
-                        const blob = await imglyRemoveBackground(originalSrc, {
-                            output: { format: 'image/png' }
-                        });
-                        processedImageBlob = blob;
-                        const processedUrl = URL.createObjectURL(blob);
+            setImageProcessing(true);
+            preview.innerHTML = `
+                <img src="${source.url}" alt="Preview" style="opacity:0.3">
+                <div class="bg-processing-overlay">
+                    <div class="spinner"></div>
+                    <div class="proc-text">
+                        <strong>Removing Background...</strong>
+                        AI processing in your browser. Untick "Remove Background" to skip.
+                    </div>
+                </div>`;
 
-                        preview.innerHTML = `<img src="${processedUrl}" alt="Preview (BG Removed)">`;
+            try {
+                const removeBackground = await bgRemovalReady;
+                if (!removeBackground) throw new Error('Background removal library failed to load');
+                const resultBlob = await withTimeout(
+                    removeBackground(source.blob, { output: { format: 'image/png' } }),
+                    BG_REMOVAL_TIMEOUT_MS,
+                    'Background removal timed out'
+                );
+                const encoded = await prepareImage(resultBlob);
+                if (jobId !== bgJobId) return;
+                processedImage = { ...encoded, url: URL.createObjectURL(encoded.blob) };
 
-                        // Show comparison
-                        comparison.style.display = 'flex';
-                        comparison.innerHTML = `
-                            <div class="compare-box">
-                                <img src="${originalSrc}" alt="Original">
-                                <div class="compare-label">Original</div>
-                            </div>
-                            <div class="compare-box">
-                                <img src="${processedUrl}" alt="Processed">
-                                <div class="compare-label">BG Removed ✨</div>
-                            </div>`;
+                showImagePreview(processedImage.url, 'Preview (BG Removed)');
+                comparison.style.display = 'flex';
+                comparison.innerHTML = `
+                    <div class="compare-box">
+                        <img src="${source.url}" alt="Original">
+                        <div class="compare-label">Original</div>
+                    </div>
+                    <div class="compare-box">
+                        <img src="${processedImage.url}" alt="Processed">
+                        <div class="compare-label">BG Removed ✨</div>
+                    </div>`;
+                showToast('✨ Background removed successfully!');
+            } catch (err) {
+                if (jobId !== bgJobId) return;
+                console.error('Background removal failed:', err);
+                showImagePreview(source.url, 'Preview');
+                showToast('Background removal failed, using original image', true);
+            } finally {
+                if (jobId === bgJobId) setImageProcessing(false);
+            }
+        }
 
-                        showToast('✨ Background removed successfully!');
-                    } catch (err) {
-                        console.error('Background removal failed:', err);
-                        preview.innerHTML = `<img src="${originalSrc}" alt="Preview">`;
-                        processedImageBlob = null;
-                        showToast('Background removal failed, using original image', true);
-                    }
-                }
-            };
-            reader.readAsDataURL(file);
+        function onBgToggleChange() {
+            if (!selectedImage) return;
+            if (document.getElementById('bg-remove-toggle').checked) {
+                if (processedImage) showImagePreview(processedImage.url, 'Preview (BG Removed)');
+                else runBackgroundRemoval();
+            } else {
+                bgJobId++;
+                setImageProcessing(false);
+                showImagePreview(selectedImage.url, 'Preview');
+            }
         }
 
         // Legacy alias
         function previewImage(input) { handleImageUpload(input); }
 
         async function saveProduct() {
+            if (imageProcessing) return showToast('Please wait for the image to finish processing', true);
+
             const name = document.getElementById('m-name').value.trim();
             const desc = document.getElementById('m-desc').value.trim();
             const price = Number(document.getElementById('m-price').value);
-            const costPrice = Number(document.getElementById('m-costprice').value) || 0;
+            const costPrice = Math.max(0, Number(document.getElementById('m-costprice').value) || 0);
             const category = document.getElementById('m-category').value;
-            const stock = Math.max(0, parseInt(document.getElementById('m-stock').value) || 0);
-            const fileInput = document.getElementById('m-image-file');
+            const stock = Math.max(0, parseInt(document.getElementById('m-stock').value, 10) || 0);
             const urlInput = document.getElementById('m-image-url').value.trim();
 
-            // Collect selected promos
             const selectedPromos = [];
             document.querySelectorAll('#promo-checkboxes input[type="checkbox"]:checked').forEach(cb => {
                 selectedPromos.push(cb.value);
             });
 
-            if (!name || !price) return alert('Name and Price are required');
+            if (!name || !(price > 0)) return alert('Name and a valid Price are required');
 
+            const isEdit = !!editingId;
             const btn = document.getElementById('modal-save-btn');
             btn.disabled = true;
-            btn.textContent = 'Saving...';
+            btn.textContent = selectedImage ? 'Uploading image...' : 'Saving...';
 
-            let imagePath = urlInput || 'images/placeholder.png';
             try {
-                if (fileInput.files.length > 0) {
-                    imagePath = await uploadImageToGitHub(fileInput.files[0]);
-                }
-                if (editingIndex >= 0) {
-                    products[editingIndex].name = name;
-                    products[editingIndex].description = desc || 'New product';
-                    products[editingIndex].price = price;
-                    products[editingIndex].costPrice = costPrice;
-                    products[editingIndex].category = category;
-                    products[editingIndex].image = imagePath;
-                    products[editingIndex].stock = stock;
-                    products[editingIndex].inStock = stock > 0;
-                    products[editingIndex].promos = selectedPromos;
-                } else {
-                    products.push({
-                        id: crypto.randomUUID(),
-                        name, description: desc || 'New product', category, price, costPrice,
-                        image: imagePath, inStock: stock > 0, stock: stock,
-                        promos: selectedPromos
-                    });
+                let imagePath = urlInput || 'images/placeholder.png';
+                if (selectedImage) {
+                    const useProcessed = processedImage && document.getElementById('bg-remove-toggle').checked;
+                    imagePath = await uploadImageToGitHub(useProcessed ? processedImage : selectedImage, selectedImage.name);
+                    document.getElementById('m-image-url').value = imagePath;
+                    resetImageState();
+                    btn.disabled = true;
+                    btn.textContent = 'Saving...';
                 }
 
-                // Push instantly
-                await fetch(`${FB_URL}/products.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(products)
+                const fields = {
+                    name, description: desc || 'New product', category, price, costPrice,
+                    image: imagePath, stock, inStock: stock > 0, promos: selectedPromos
+                };
+                const targetId = editingId;
+                await mutateProducts(list => {
+                    if (isEdit) {
+                        const p = findProduct(list, targetId);
+                        if (!p) throw new Error('This product was deleted in the meantime');
+                        Object.assign(p, fields);
+                    } else {
+                        list.push({ id: generateId(), ...fields });
+                    }
                 });
-                showToast(editingIndex >= 0 ? 'Product updated globally!' : 'Product added globally!');
-
+                showToast(isEdit ? 'Product updated globally!' : 'Product added globally!');
                 closeModal();
-                renderAll();
             } catch (e) {
                 alert('Error: ' + e.message);
             } finally {
-                btn.disabled = false;
-                btn.textContent = editingIndex >= 0 ? 'Save Changes' : 'Add Product';
+                btn.disabled = imageProcessing;
+                if (!imageProcessing) btn.textContent = isEdit ? 'Save Changes' : 'Add Product';
             }
         }
 
-        async function uploadImageToGitHub(file) {
-            let uploadBlob = file;
-            let ext = file.name.split('.').pop();
-
-            // If background was removed, use the processed blob instead
-            if (processedImageBlob && document.getElementById('bg-remove-toggle').checked) {
-                uploadBlob = processedImageBlob;
-                ext = 'png'; // bg-removed images are always PNG
-            }
-
-            const content = await new Promise((resolve, reject) => {
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = () => resolve(reader.result.split(',')[1]);
-                reader.onerror = reject;
-                reader.readAsDataURL(uploadBlob);
+                reader.onload = () => resolve(String(reader.result).split(',')[1]);
+                reader.onerror = () => reject(new Error('Could not read image data'));
+                reader.readAsDataURL(blob);
             });
-            const filename = `images/${Date.now()}-${Math.floor(Math.random() * 1000)}.${ext}`;
-            const url = `https://api.github.com/repos/${config.user}/${config.repo}/contents/${filename}`;
-            const res = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Authorization': `token ${config.token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: `Upload ${file.name} via Admin`, content })
-            });
-            if (!res.ok) throw new Error('Failed to upload image');
-            processedImageBlob = null; // Reset after upload
+        }
+
+        async function uploadImageToGitHub(image, originalName) {
+            if (!config.user || !config.repo || !config.token) {
+                throw new Error('GitHub credentials missing. Log out and log in again.');
+            }
+            const content = await blobToBase64(image.blob);
+            const filename = `images/${Date.now()}-${Math.floor(Math.random() * 1000)}.${image.ext}`;
+            const url = `https://api.github.com/repos/${encodeURIComponent(config.user)}/${encodeURIComponent(config.repo)}/contents/${filename}`;
+            let res;
+            try {
+                res = await fetch(url, {
+                    method: 'PUT',
+                    headers: githubHeaders(),
+                    body: JSON.stringify({ message: `Upload ${originalName || 'image'} via Admin`, content })
+                });
+            } catch (e) {
+                throw new Error('Could not reach GitHub to upload the image. Check your connection.');
+            }
+            if (!res.ok) throw new Error('Image upload failed. ' + await describeGitHubError(res));
             return filename;
         }
 
@@ -2467,11 +2672,12 @@
         function onSettingChange() {
             siteConfig.ownerPhone = document.getElementById('set-phone').value.trim();
             siteConfig.deliveryHours = document.getElementById('set-hours').value.trim();
-            siteConfig.deliveryFee = Number(document.getElementById('set-delfee').value) || 0;
-            siteConfig.minOrder = Number(document.getElementById('set-minorder').value) || 0;
+            siteConfig.deliveryFee = Math.max(0, Number(document.getElementById('set-delfee').value) || 0);
+            siteConfig.minOrder = Math.max(0, Number(document.getElementById('set-minorder').value) || 0);
             siteConfig.announcement = document.getElementById('set-announcement').value.trim();
             const sheetEl = document.getElementById('set-sheeturl');
             if (sheetEl) siteConfig.sheetUrl = sheetEl.value.trim();
+            hasUnsavedChanges = true;
             renderConfigPreview();
         }
 
@@ -2494,33 +2700,33 @@
 
         async function toggleStoreOpen() {
             const isOpen = document.getElementById('store-open-toggle').checked;
+            const previous = siteConfig.storeOpen;
             siteConfig.storeOpen = isOpen;
             renderStoreToggle();
             try {
-                await fetch(`${FB_URL}/siteConfig/storeOpen.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(isOpen)
-                });
+                await fbRequest('siteConfig/storeOpen', 'PUT', isOpen);
                 showToast(isOpen ? '🏪 Store opened!' : '🔒 Store closed!');
             } catch (e) {
-                showToast('Failed to update store status', true);
+                siteConfig.storeOpen = previous;
+                renderStoreToggle();
+                showToast('Failed to update store status: ' + e.message, true);
             }
         }
 
         async function toggleDeliveryEnabled() {
-            const enabled = document.getElementById('delivery-enabled-toggle').checked;
+            const toggle = document.getElementById('delivery-enabled-toggle');
+            const enabled = toggle.checked;
+            const previous = siteConfig.deliveryEnabled;
             siteConfig.deliveryEnabled = enabled;
             renderConfigPreview();
             try {
-                await fetch(`${FB_URL}/siteConfig/deliveryEnabled.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(enabled)
-                });
+                await fbRequest('siteConfig/deliveryEnabled', 'PUT', enabled);
                 showToast(enabled ? '🚚 Delivery enabled!' : '🚫 Delivery disabled — pickup only');
             } catch (e) {
-                showToast('Failed to update delivery setting', true);
+                siteConfig.deliveryEnabled = previous;
+                toggle.checked = previous !== false;
+                renderConfigPreview();
+                showToast('Failed to update delivery setting: ' + e.message, true);
             }
         }
 
@@ -2537,7 +2743,7 @@
         function parseOrderItems(orders) {
             const itemCounts = {};
             orders.forEach(o => {
-                const items = (o['Items'] || '').split(', ');
+                const items = String(o['Items'] || '').split(', ');
                 items.forEach(itemStr => {
                     if (!itemStr.trim()) return;
                     const parsed = parseSingleItem(itemStr);
@@ -2549,6 +2755,31 @@
             return itemCounts;
         }
 
+        function parseOrderTimestamp(tsStr) {
+            if (tsStr.includes('T') && tsStr.includes('Z')) return new Date(tsStr).getTime();
+            const parts = tsStr.split(',');
+            const dParts = parts[0].trim().split(/[\/\-]/);
+            if (dParts.length !== 3) return new Date(tsStr).getTime() || 0;
+            let d = parseInt(dParts[0], 10);
+            let m = parseInt(dParts[1], 10) - 1;
+            let y = parseInt(dParts[2], 10);
+            if (y < 2000 && d >= 2000) { const temp = y; y = d; d = temp; }
+
+            let h = 0, min = 0, s = 0;
+            if (parts.length > 1) {
+                const timeStr = parts[1].trim().toLowerCase();
+                const tParts = timeStr.replace(/[ap]m/, '').trim().split(':');
+                if (tParts.length >= 2) {
+                    h = parseInt(tParts[0], 10);
+                    min = parseInt(tParts[1], 10);
+                    s = parseInt(tParts[2], 10) || 0;
+                    if (timeStr.includes('pm') && h < 12) h += 12;
+                    if (timeStr.includes('am') && h === 12) h = 0;
+                }
+            }
+            return new Date(y, m, d, h, min, s).getTime();
+        }
+
         function renderDailySummary() {
             const el = document.getElementById('daily-summary-content');
             if (!el || cachedOrders.length === 0) {
@@ -2556,8 +2787,7 @@
                 return;
             }
 
-            // Filter today's orders for the current night shift (from 12:00 PM to 12:00 PM next day)
-            // This ensures orders placed after midnight correctly group with "tonight"
+            // Night shift runs from 12:00 PM to 12:00 PM next day, so orders after midnight group with "tonight"
             const now = new Date();
             const shiftStart = new Date();
             if (now.getHours() < 12) {
@@ -2565,72 +2795,23 @@
             }
             shiftStart.setHours(12, 0, 0, 0);
             const shiftStartMs = shiftStart.getTime();
+            const shiftEndMs = shiftStartMs + (24 * 60 * 60 * 1000);
 
             const todayOrders = cachedOrders.filter(o => {
-                const tsStr = o['Timestamp'] || '';
+                const tsStr = String(o['Timestamp'] || '');
                 if (!tsStr) return false;
-
-                // Try to parse the format (DD/MM/YYYY, h:mm:ss a) manually to be safe
-                let ts = 0;
-                if (tsStr.includes('T') && tsStr.includes('Z')) {
-                    ts = new Date(tsStr).getTime();
-                } else {
-                    const parts = tsStr.split(',');
-                    const dParts = parts[0].trim().split(/[\/\-]/);
-                    if (dParts.length === 3) {
-                        let d = parseInt(dParts[0]);
-                        let m = parseInt(dParts[1]) - 1;
-                        let y = parseInt(dParts[2]);
-                        if (y < 2000 && d >= 2000) { let temp = y; y = d; d = temp; }
-
-                        let h = 0, min = 0, s = 0;
-                        if (parts.length > 1) {
-                            const timeStr = parts[1].trim().toLowerCase();
-                            const tParts = timeStr.replace(/[ap]m/, '').trim().split(':');
-                            if (tParts.length >= 2) {
-                                h = parseInt(tParts[0]);
-                                min = parseInt(tParts[1]);
-                                if (timeStr.includes('pm') && h < 12) h += 12;
-                                if (timeStr.includes('am') && h === 12) h = 0;
-                            }
-                        }
-                        ts = new Date(y, m, d, h, min, s).getTime();
-                    } else {
-                        ts = new Date(tsStr).getTime() || 0;
-                    }
-                }
-
-                // Fallback direct string match if parsing failed completely
+                const ts = parseOrderTimestamp(tsStr);
                 if (!ts || isNaN(ts)) {
                     const todayStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
                     return tsStr.includes(todayStr) || tsStr.includes(now.toISOString().split('T')[0]);
                 }
-
-                const shiftEndMs = shiftStartMs + (24 * 60 * 60 * 1000);
                 return ts >= shiftStartMs && ts < shiftEndMs;
             });
 
             const orderCount = todayOrders.length;
-            const revenue = todayOrders.reduce((s, o) => s + (parseFloat(o['Total']) || 0), 0);
-
-            // Calculate today's profit
-            let profit = 0;
-            // Just sum the calculatedProfit we already put on cachedOrders
-            todayOrders.forEach(o => {
-                profit += o.calculatedProfit || 0;
-            });
+            const revenue = Math.round(todayOrders.reduce((s, o) => s + (parseFloat(o['Total']) || 0), 0) * 100) / 100;
+            const profit = todayOrders.reduce((s, o) => s + (o.calculatedProfit || 0), 0);
             const itemCounts = parseOrderItems(todayOrders);
-            // Fallback for when data initially loads or calculatedProfit isn't set yet somehow
-            if (profit === 0) {
-                Object.entries(itemCounts).forEach(([name, qty]) => {
-                    const product = products.find(p => p.name === name);
-                    if (product && product.costPrice) {
-                        profit += (product.price - product.costPrice) * qty;
-                    }
-                });
-            }
-
-            // Find top item today
             const topItem = Object.entries(itemCounts).sort((a, b) => b[1] - a[1])[0];
 
             if (orderCount === 0) {
@@ -2659,7 +2840,7 @@
                     </div>
                     <div style="background:var(--bg);border-radius:var(--radius-sm);padding:16px;text-align:center;">
                         <div style="font-size:24px;font-weight:800;color:var(--accent);">🔥 ${topItem ? topItem[1] : 0}</div>
-                        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Top: ${topItem ? topItem[0] : '-'}</div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Top: ${escapeHtml(topItem ? topItem[0] : '-')}</div>
                     </div>
                 </div>`;
         }
@@ -2688,9 +2869,9 @@
                 return `
                     <div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i < sorted.length - 1 ? 'border-bottom:1px solid var(--border);' : ''}">
                         <span style="font-size:20px;width:32px;text-align:center;flex-shrink:0;">${medals[i]}</span>
-                        ${product ? `<img src="${product.image}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;background:#000;flex-shrink:0;" onerror="this.style.display='none'">` : ''}
+                        ${product ? `<img src="${escapeHtml(product.image)}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;background:#000;flex-shrink:0;" onerror="this.style.display='none'">` : ''}
                         <div style="flex:1;min-width:0;">
-                            <div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+                            <div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(name)}</div>
                             <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
                                 <div style="flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;">
                                     <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--accent),#34d399);border-radius:3px;transition:width 0.5s ease;"></div>
@@ -2708,21 +2889,21 @@
         // ===== PUBLISH =====
         async function pushChanges() {
             const btn = document.getElementById('publish-btn');
-            btn.textContent = 'Publishing...';
+            btn.textContent = 'Saving...';
             btn.disabled = true;
 
             try {
-                const res = await fetch(FB_URL + '/.json', {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ siteConfig, products, promoCodes })
+                // Only the settings form is saved here; toggles, products and promos are written immediately.
+                const { ownerPhone, deliveryHours, deliveryFee, minOrder, announcement, sheetUrl } = siteConfig;
+                await fbRequest('siteConfig', 'PATCH', {
+                    ownerPhone: ownerPhone || '', deliveryHours: deliveryHours || '', deliveryFee: deliveryFee || 0,
+                    minOrder: minOrder || 0, announcement: announcement || '', sheetUrl: sheetUrl || ''
                 });
-
-                if (!res.ok) throw new Error('Firebase update failed');
-
+                hasUnsavedChanges = false;
                 showToast('🚀 Settings Saved!');
+                if (document.getElementById('tab-orders').classList.contains('active')) fetchOrders();
             } catch (e) {
-                alert('Publish failed: ' + e.message);
+                alert('Save failed: ' + e.message);
             } finally {
                 btn.textContent = 'Save Settings';
                 btn.disabled = false;
@@ -2734,16 +2915,17 @@
             const container = document.getElementById('promo-checkboxes');
             const group = document.getElementById('promo-checkboxes-group');
             if (!container) return;
-            const codes = Object.keys(promoCodes).filter(c => promoCodes[c].active !== false);
+            const codes = Object.keys(promoCodes).filter(c => promoCodes[c].active !== false || selected.includes(c));
             if (codes.length === 0) {
+                container.innerHTML = '';
                 if (group) group.style.display = 'none';
                 return;
             }
             if (group) group.style.display = 'block';
             container.innerHTML = codes.map(code => `
                 <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 10px;background:var(--bg);border-radius:6px;border:1px solid var(--border);font-size:13px;">
-                    <input type="checkbox" value="${code}" ${selected.includes(code) ? 'checked' : ''}>
-                    ${code}
+                    <input type="checkbox" value="${escapeHtml(code)}" ${selected.includes(code) ? 'checked' : ''}>
+                    ${escapeHtml(code)}${promoCodes[code].active === false ? ' (inactive)' : ''}
                 </label>
             `).join('');
         }
@@ -2758,30 +2940,40 @@
             }
             area.innerHTML = codes.map(code => {
                 const p = promoCodes[code];
-                const typeLabel = p.type === 'percent' ? `${p.value}% Off` : p.type === 'flat' ? `₹${p.value} Off` : p.type === 'free_item' ? `🎁 Free ${p.itemName || 'item'}` : '—';
+                const safeCode = escapeHtml(code);
+                const typeLabel = p.type === 'percent' ? `${escapeHtml(p.value)}% Off` : p.type === 'flat' ? `₹${escapeHtml(p.value)} Off` : p.type === 'free_item' ? `🎁 Free ${escapeHtml(p.itemName || 'item')}` : '—';
                 return `
                     <div class="promo-row" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg);border-radius:var(--radius-sm);margin-bottom:8px;border:1px solid var(--border);">
                         <div style="flex:1;min-width:0;">
-                            <div style="font-size:16px;font-weight:700;color:var(--accent);">${code}</div>
-                            <div style="font-size:13px;color:var(--text-dim);margin-top:2px;">${typeLabel} · Min ₹${p.minOrder || 0} · ${p.description || ''}</div>
-                            <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">Used ${p.usageCount || 0} times</div>
+                            <div style="font-size:16px;font-weight:700;color:var(--accent);">${safeCode}</div>
+                            <div style="font-size:13px;color:var(--text-dim);margin-top:2px;">${typeLabel} · Min ₹${escapeHtml(p.minOrder || 0)} · ${escapeHtml(p.description || '')}</div>
+                            <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">Used ${escapeHtml(p.usageCount || 0)} times</div>
                         </div>
                         <label class="toggle" title="Toggle active" style="flex-shrink:0;">
-                            <input type="checkbox" ${p.active !== false ? 'checked' : ''} onchange="togglePromoActive('${code}')">
+                            <input type="checkbox" ${p.active !== false ? 'checked' : ''} onchange="togglePromoActive('${safeCode}')">
                             <span class="slider"></span>
                         </label>
-                        <button class="btn-icon" title="Edit" onclick="openEditPromo('${code}')" style="flex-shrink:0;">✏️</button>
-                        <button class="btn-icon danger" title="Delete" onclick="deletePromo('${code}')" style="flex-shrink:0;">🗑️</button>
+                        <button class="btn-icon" title="Edit" onclick="openEditPromo('${safeCode}')" style="flex-shrink:0;">✏️</button>
+                        <button class="btn-icon danger" title="Delete" onclick="deletePromo('${safeCode}')" style="flex-shrink:0;">🗑️</button>
                     </div>
                 `;
             }).join('');
         }
 
-        function togglePromoActive(code) {
-            if (promoCodes[code]) {
-                promoCodes[code].active = !promoCodes[code].active;
+        async function togglePromoActive(code) {
+            const promo = promoCodes[code];
+            if (!promo) return;
+            const previous = promo.active;
+            const active = promo.active === false;
+            promo.active = active;
+            renderPromotions();
+            try {
+                await fbRequest(`promoCodes/${encodeURIComponent(code)}/active`, 'PUT', active);
+                showToast(`${code} ${active ? 'activated' : 'deactivated'}`);
+            } catch (e) {
+                promo.active = previous;
                 renderPromotions();
-                showToast(`${code} ${promoCodes[code].active ? 'activated' : 'deactivated'}`);
+                showToast('Failed to update promo: ' + e.message, true);
             }
         }
 
@@ -2791,27 +2983,34 @@
             document.getElementById('pm-item-group').style.display = type === 'free_item' ? 'block' : 'none';
         }
 
-        function populatePromoProductDropdown() {
+        function populatePromoProductDropdown(selectedName = '') {
             const sel = document.getElementById('pm-item');
             if (!sel) return;
             sel.innerHTML = '<option value="">Select a product...</option>';
+            const names = products.map(p => p.name);
+            if (selectedName && !names.includes(selectedName)) {
+                const opt = document.createElement('option');
+                opt.value = selectedName;
+                opt.textContent = `${selectedName} (not in product list)`;
+                sel.appendChild(opt);
+            }
             products.forEach(p => {
                 const opt = document.createElement('option');
                 opt.value = p.name;
                 opt.textContent = `${p.name} — ₹${p.price}${p.costPrice ? ' (cost ₹' + p.costPrice + ')' : ''}`;
                 sel.appendChild(opt);
             });
+            sel.value = selectedName;
         }
 
         function showAddPromoModal() {
-            promoEditingIndex = -1;
+            editingPromoCode = null;
             document.getElementById('promo-modal-title').textContent = 'Add Promo Code';
             document.getElementById('promo-modal-save-btn').textContent = 'Add Promo';
             document.getElementById('pm-code').value = '';
             document.getElementById('pm-code').disabled = false;
             document.getElementById('pm-type').value = 'percent';
             document.getElementById('pm-value').value = '';
-            document.getElementById('pm-item').value = '';
             document.getElementById('pm-minorder').value = '';
             document.getElementById('pm-desc').value = '';
             document.getElementById('pm-active').checked = true;
@@ -2823,7 +3022,7 @@
         function openEditPromo(code) {
             const p = promoCodes[code];
             if (!p) return;
-            promoEditingIndex = code;
+            editingPromoCode = code;
             document.getElementById('promo-modal-title').textContent = 'Edit Promo Code';
             document.getElementById('promo-modal-save-btn').textContent = 'Save Changes';
             document.getElementById('pm-code').value = code;
@@ -2833,8 +3032,7 @@
             document.getElementById('pm-minorder').value = p.minOrder || '';
             document.getElementById('pm-desc').value = p.description || '';
             document.getElementById('pm-active').checked = p.active !== false;
-            populatePromoProductDropdown();
-            document.getElementById('pm-item').value = p.itemName || '';
+            populatePromoProductDropdown(p.itemName || '');
             togglePromoTypeFields();
             document.getElementById('promo-modal').classList.remove('hidden');
         }
@@ -2844,52 +3042,55 @@
         }
 
         async function savePromo() {
-            const code = document.getElementById('pm-code').value.trim().toUpperCase();
+            const isEdit = !!editingPromoCode;
+            const code = isEdit ? editingPromoCode : document.getElementById('pm-code').value.trim().toUpperCase();
             if (!code) return alert('Code is required');
+            if (!/^[A-Z0-9_-]+$/.test(code)) return alert('Code can only contain letters, numbers, - and _');
+            if (!isEdit && promoCodes[code]) return alert(`Promo code ${code} already exists`);
+
             const type = document.getElementById('pm-type').value;
             const value = type !== 'free_item' ? Number(document.getElementById('pm-value').value) || 0 : 0;
             const itemName = type === 'free_item' ? document.getElementById('pm-item').value.trim() : '';
-            const minOrder = Number(document.getElementById('pm-minorder').value) || 0;
+            const minOrder = Math.max(0, Number(document.getElementById('pm-minorder').value) || 0);
             const description = document.getElementById('pm-desc').value.trim() || '—';
             const active = document.getElementById('pm-active').checked;
 
-            if (type === 'free_item' && !itemName) return alert('Please enter the free item name');
+            if (type === 'free_item' && !itemName) return alert('Please select the free item');
             if (type !== 'free_item' && value <= 0) return alert('Please enter a valid value');
+            if (type === 'percent' && value > 100) return alert('Percentage cannot be more than 100');
 
-            const existing = promoCodes[code];
-            promoCodes[code] = {
-                ...(existing || {}),
-                type, value, itemName, minOrder, description, active,
-                usageCount: existing?.usageCount || 0,
-            };
-
+            const fields = { type, value, itemName, minOrder, description, active };
+            const btn = document.getElementById('promo-modal-save-btn');
+            btn.disabled = true;
             try {
-                await fetch(`${FB_URL}/promoCodes.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(promoCodes)
-                });
-                showToast(promoEditingIndex ? 'Promo updated!' : 'Promo added!');
+                const path = `promoCodes/${encodeURIComponent(code)}`;
+                if (isEdit) {
+                    // PATCH keeps usageCount, which the storefront increments on checkout
+                    await fbRequest(path, 'PATCH', fields);
+                    promoCodes[code] = { ...promoCodes[code], ...fields };
+                } else {
+                    const record = { ...fields, usageCount: 0 };
+                    await fbRequest(path, 'PUT', record);
+                    promoCodes[code] = record;
+                }
+                showToast(isEdit ? 'Promo updated!' : 'Promo added!');
+                closePromoModal();
+                renderPromotions();
             } catch (e) {
-                showToast('Failed to save promo', true);
+                showToast('Failed to save promo: ' + e.message, true);
+            } finally {
+                btn.disabled = false;
             }
-
-            closePromoModal();
-            renderPromotions();
         }
 
         async function deletePromo(code) {
-            if (!confirm(`Delete promo code "${code}"?`)) return;
-            delete promoCodes[code];
+            if (!promoCodes[code] || !confirm(`Delete promo code "${code}"?`)) return;
             try {
-                await fetch(`${FB_URL}/promoCodes.json`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(promoCodes)
-                });
+                await fbRequest(`promoCodes/${encodeURIComponent(code)}`, 'DELETE');
+                delete promoCodes[code];
                 showToast(`Promo ${code} deleted`);
             } catch (e) {
-                showToast('Failed to delete promo', true);
+                showToast('Failed to delete promo: ' + e.message, true);
             }
             renderPromotions();
         }
@@ -2898,37 +3099,6 @@
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', () => switchTab(btn.dataset.tab));
         });
-
-        // Expose functions to global scope for onclick handlers (required with type="module")
-        window.login = login;
-        window.logout = logout;
-        window.showAddModal = showAddModal;
-        window.openEdit = openEdit;
-        window.closeModal = closeModal;
-        window.saveProduct = saveProduct;
-        window.deleteProduct = deleteProduct;
-        window.toggleStock = toggleStock;
-        window.updateStock = updateStock;
-        window.toggleAllStock = toggleAllStock;
-        window.toggleSidebar = toggleSidebar;
-        window.closeSidebar = closeSidebar;
-        window.handleImageUpload = handleImageUpload;
-        window.previewImage = previewImage;
-        window.switchTab = switchTab;
-        window.pushChanges = pushChanges;
-        window.onSettingChange = onSettingChange;
-        window.renderProductList = renderProductList;
-        window.toggleStoreOpen = toggleStoreOpen;
-        window.toggleDeliveryEnabled = toggleDeliveryEnabled;
-        window.renderDailySummary = renderDailySummary;
-        window.renderBestSellers = renderBestSellers;
-        window.showAddPromoModal = showAddPromoModal;
-        window.openEditPromo = openEditPromo;
-        window.closePromoModal = closePromoModal;
-        window.savePromo = savePromo;
-        window.deletePromo = deletePromo;
-        window.togglePromoActive = togglePromoActive;
-        window.togglePromoTypeFields = togglePromoTypeFields;
 
         function switchTab(tab) {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -2944,16 +3114,58 @@
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('show'); }
         function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('mobile-overlay').classList.remove('show'); }
 
+        let toastTimer = null;
         function showToast(msg, isError) {
             const t = document.getElementById('toast');
             t.textContent = msg;
             t.className = isError ? 'error' : '';
             t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('show'), isError ? 6000 : 3000);
         }
 
         // ===== ORDERS FROM GOOGLE SHEET =====
         let cachedOrders = [];
+        let ordersLoaded = false;
+        let renderedOrders = [];
+
+        async function loadOrdersFromSheet() {
+            const res = await fetch(siteConfig.sheetUrl);
+            if (!res.ok) throw new Error(`Sheet request failed (${res.status})`);
+            return res.json();
+        }
+
+        function applyOrders(orders) {
+            cachedOrders = orders;
+            ordersLoaded = true;
+
+            const totalSales = cachedOrders.length;
+            const totalRevenue = cachedOrders.reduce((sum, o) => sum + (parseFloat(o['Total']) || 0), 0);
+            let totalProfit = 0;
+            cachedOrders.forEach(o => {
+                let orderProfit = 0;
+                String(o['Items'] || '').split(', ').forEach(itemStr => {
+                    if (!itemStr.trim()) return;
+                    const parsed = parseSingleItem(itemStr);
+                    const product = parsed.name && products.find(p => p.name === parsed.name);
+                    if (product && product.costPrice) {
+                        orderProfit += (product.price - product.costPrice) * parsed.qty;
+                    }
+                });
+                o.calculatedProfit = orderProfit;
+                totalProfit += orderProfit;
+            });
+
+            const revEl = document.getElementById('stat-revenue');
+            const salesEl = document.getElementById('stat-sales');
+            const profitEl = document.getElementById('stat-profit');
+            if (revEl) revEl.textContent = '₹' + Math.round(totalRevenue * 100) / 100;
+            if (salesEl) salesEl.textContent = totalSales;
+            if (profitEl) profitEl.textContent = '₹' + Math.round(totalProfit * 100) / 100;
+
+            renderDailySummary();
+            renderBestSellers();
+        }
 
         async function fetchOrders(silent = false) {
             const area = document.getElementById('orders-table-area');
@@ -2963,54 +3175,26 @@
             }
             if (!silent && area) area.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:40px;">Loading orders...</p>';
             try {
-                const res = await fetch(siteConfig.sheetUrl);
-                const data = await res.json();
-                if (data.status === 'success' && data.orders) {
-                    cachedOrders = data.orders;
-
-                    // Update stats
-                    const totalSales = cachedOrders.length;
-                    const totalRevenue = cachedOrders.reduce((sum, o) => sum + (parseFloat(o['Total']) || 0), 0);
-
-                    // Calculate profit from orders purely client-side
-                    let totalProfit = 0;
-                    cachedOrders.forEach(o => {
-                        let orderProfit = 0;
-                        const items = (o['Items'] || '').split(', ');
-                        items.forEach(itemStr => {
-                            if (!itemStr.trim()) return;
-                            const parsed = parseSingleItem(itemStr);
-                            if (parsed.name) {
-                                const product = products.find(p => p.name === parsed.name);
-                                if (product && product.costPrice) {
-                                    orderProfit += (product.price - product.costPrice) * parsed.qty;
-                                }
-                            }
-                        });
-                        o.calculatedProfit = orderProfit;
-                        totalProfit += orderProfit;
-                    });
-
-                    const revEl = document.getElementById('stat-revenue');
-                    const salesEl = document.getElementById('stat-sales');
-                    const profitEl = document.getElementById('stat-profit');
-                    if (revEl) revEl.textContent = '₹' + totalRevenue;
-                    if (salesEl) salesEl.textContent = totalSales;
-                    if (profitEl) profitEl.textContent = '₹' + Math.round(totalProfit * 100) / 100;
-
+                const data = await loadOrdersFromSheet();
+                if (data.status === 'success' && Array.isArray(data.orders)) {
+                    applyOrders(data.orders);
                     if (!silent) {
                         renderOrders();
                         showToast(`Loaded ${data.orders.length} orders`);
                     }
-                    // Always update dashboard sections
-                    renderDailySummary();
-                    renderBestSellers();
                 } else {
-                    if (!silent && area) area.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">❌ Failed to load: ' + (data.message || 'Unknown error') + '</p>';
+                    if (!silent && area) area.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">❌ Failed to load: ' + escapeHtml(data.message || 'Unknown error') + '</p>';
                 }
             } catch (e) {
-                if (!silent && area) area.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">❌ Error: ' + e.message + '</p>';
+                if (!silent && area) area.innerHTML = '<p style="color:var(--danger);text-align:center;padding:40px;">❌ Error: ' + escapeHtml(e.message) + '</p>';
             }
+        }
+
+        function formatDelivery(o, long) {
+            if (o['Delivery Type'] !== 'delivery') return '🏃 Pickup';
+            return long
+                ? `🚪 Floor ${escapeHtml(o['Floor'] || '-')}, Room ${escapeHtml(o['Room'] || '-')}`
+                : `🚪 F${escapeHtml(o['Floor'])} R${escapeHtml(o['Room'])}`;
         }
 
         function renderOrders() {
@@ -3023,6 +3207,7 @@
                     return searchable.includes(q);
                 });
             }
+            renderedOrders = orders;
             if (orders.length === 0) {
                 area.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:40px;">No orders found.</p>';
                 return;
@@ -3039,20 +3224,18 @@
             html += '<th style="padding:10px 8px;color:#34d399;text-align:right;">Profit</th>';
             html += '<th style="padding:10px 8px;color:var(--accent);text-align:center;">Invoice</th>';
             html += '</tr></thead><tbody>';
-            orders.forEach(o => {
-                const delivery = o['Delivery Type'] === 'delivery' ? `🚪 F${o['Floor']} R${o['Room']}` : '🏃 Pickup';
+            orders.forEach((o, i) => {
                 html += `<tr style="border-bottom:1px solid var(--border);">`;
-                html += `<td style="padding:10px 8px;white-space:nowrap;color:var(--text-muted);">${o['Timestamp'] || '-'}</td>`;
-                html += `<td style="padding:10px 8px;font-weight:600;">${o['Order ID'] || '-'}</td>`;
-                html += `<td style="padding:10px 8px;">${o['Customer Name'] || '-'}</td>`;
-                html += `<td style="padding:10px 8px;color:var(--text-muted);">${o['Phone'] || '-'}</td>`;
-                html += `<td style="padding:10px 8px;">${delivery}</td>`;
-                html += `<td style="padding:10px 8px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${o['Items'] || ''}">${o['Items'] || '-'}</td>`;
+                html += `<td style="padding:10px 8px;white-space:nowrap;color:var(--text-muted);">${escapeHtml(o['Timestamp'] || '-')}</td>`;
+                html += `<td style="padding:10px 8px;font-weight:600;">${escapeHtml(o['Order ID'] || '-')}</td>`;
+                html += `<td style="padding:10px 8px;">${escapeHtml(o['Customer Name'] || '-')}</td>`;
+                html += `<td style="padding:10px 8px;color:var(--text-muted);">${escapeHtml(o['Phone'] || '-')}</td>`;
+                html += `<td style="padding:10px 8px;">${formatDelivery(o, false)}</td>`;
+                html += `<td style="padding:10px 8px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(o['Items'] || '')}">${escapeHtml(o['Items'] || '-')}</td>`;
                 const displayProfit = Math.round((o.calculatedProfit || 0) * 100) / 100;
-                html += `<td style="padding:10px 8px;text-align:right;font-weight:700;color:var(--accent);">₹${o['Total'] || 0}</td>`;
+                html += `<td style="padding:10px 8px;text-align:right;font-weight:700;color:var(--accent);">₹${escapeHtml(o['Total'] || 0)}</td>`;
                 html += `<td style="padding:10px 8px;text-align:right;font-weight:600;color:#34d399;">₹${displayProfit}</td>`;
-                const orderData = encodeURIComponent(JSON.stringify(o));
-                html += `<td style="padding:10px 8px;text-align:center;"><button class="btn-icon" title="Print Invoice" onclick="printOrder('${orderData}')">🧾</button></td>`;
+                html += `<td style="padding:10px 8px;text-align:center;"><button class="btn-icon" title="Print Invoice" onclick="printOrder(${i})">🧾</button></td>`;
                 html += `</tr>`;
             });
             html += '</tbody></table></div>';
@@ -3060,21 +3243,17 @@
             area.innerHTML = html;
         }
 
-        window.fetchOrders = fetchOrders;
-        window.renderOrders = renderOrders;
-
-        function printOrder(orderStr) {
+        function printOrder(index) {
+            const o = renderedOrders[index];
+            if (!o) return showToast('Order not found, refresh orders', true);
             try {
-                const o = JSON.parse(decodeURIComponent(orderStr));
-                const delivery = o['Delivery Type'] === 'delivery'
-                    ? `🚪 Floor ${o['Floor'] || '-'}, Room ${o['Room'] || '-'}`
-                    : '🏃 Pickup';
-                const items = (o['Items'] || '').split(', ').filter(Boolean);
-                let itemsHtml = items.map(item => `<tr><td style="padding:4px 0;font-size:13px;">${item}</td></tr>`).join('');
-                const promo = o['Promo'] ? `<p style="font-size:13px;color:#666;">Promo: ${o['Promo']}</p>` : '';
+                const items = String(o['Items'] || '').split(', ').filter(Boolean);
+                const itemsHtml = items.map(item => `<tr><td style="padding:4px 0;font-size:13px;">${escapeHtml(item)}</td></tr>`).join('');
+                const promo = o['Promo'] ? `<p style="font-size:13px;color:#666;">Promo: ${escapeHtml(o['Promo'])}</p>` : '';
 
                 const win = window.open('', '_blank', 'width=420,height=600');
-                win.document.write(`<!DOCTYPE html><html><head><title>Invoice ${o['Order ID'] || ''}</title>
+                if (!win) return showToast('Pop-up blocked. Allow pop-ups to print invoices.', true);
+                win.document.write(`<!DOCTYPE html><html><head><title>Invoice ${escapeHtml(o['Order ID'] || '')}</title>
                     <style>
                         body{font-family:Inter,sans-serif;padding:24px;max-width:360px;margin:0 auto;color:#111;background:#fff}
                         h1{font-size:20px;font-weight:800;margin-bottom:4px}
@@ -3086,15 +3265,15 @@
                     </style></head><body>
                     <h1>AfterCurfew</h1>
                     <div class="meta">
-                        <strong>Order:</strong> ${o['Order ID'] || '-'}<br>
-                        <strong>Customer:</strong> ${o['Customer Name'] || '-'}<br>
-                        <strong>Phone:</strong> ${o['Phone'] || '-'}<br>
-                        <strong>${delivery}</strong><br>
-                        <strong>Time:</strong> ${o['Timestamp'] || '-'}
+                        <strong>Order:</strong> ${escapeHtml(o['Order ID'] || '-')}<br>
+                        <strong>Customer:</strong> ${escapeHtml(o['Customer Name'] || '-')}<br>
+                        <strong>Phone:</strong> ${escapeHtml(o['Phone'] || '-')}<br>
+                        <strong>${formatDelivery(o, true)}</strong><br>
+                        <strong>Time:</strong> ${escapeHtml(o['Timestamp'] || '-')}
                     </div>
                     <table><thead><tr><th>Items</th></tr></thead><tbody>${itemsHtml}</tbody></table>
                     ${promo}
-                    <div class="total">Total: ₹${o['Total'] || 0}</div>
+                    <div class="total">Total: ₹${escapeHtml(o['Total'] || 0)}</div>
                     <div class="footer">Thank you for ordering!</div>
                     <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
                 </body></html>`);
@@ -3119,20 +3298,26 @@
             const section = document.getElementById('notif-toggle-section');
 
             if (notificationsEnabled) {
-                // Request browser notification permission
+                if (!siteConfig.sheetUrl) {
+                    toggle.checked = false;
+                    notificationsEnabled = false;
+                    return showToast('Set your Google Sheet URL in Settings first', true);
+                }
                 if ('Notification' in window && Notification.permission === 'default') {
                     Notification.requestPermission();
                 }
 
                 // Initialize audio context on user gesture
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                try {
+                    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioCtx.state === 'suspended') audioCtx.resume();
+                } catch (e) {
+                    audioCtx = null;
                 }
 
-                // Set baseline count so first poll doesn't trigger notification
-                lastKnownOrderCount = cachedOrders.length;
+                // Baseline so the first poll does not notify about existing orders
+                lastKnownOrderCount = ordersLoaded ? cachedOrders.length : -1;
 
-                // Start polling every 30 seconds
                 startNotifPolling();
 
                 badge.textContent = '● LIVE';
@@ -3156,6 +3341,7 @@
         function startNotifPolling() {
             stopNotifPolling();
             notifPollInterval = setInterval(pollForNewOrders, 30000);
+            if (lastKnownOrderCount < 0) pollForNewOrders();
         }
 
         function stopNotifPolling() {
@@ -3165,59 +3351,28 @@
             }
         }
 
+        let pollInFlight = false;
         async function pollForNewOrders() {
-            if (!notificationsEnabled || !siteConfig.sheetUrl) return;
-
+            if (!notificationsEnabled || !siteConfig.sheetUrl || pollInFlight) return;
+            pollInFlight = true;
             try {
-                const res = await fetch(siteConfig.sheetUrl);
-                const data = await res.json();
-
-                if (data.status === 'success' && data.orders) {
+                const data = await loadOrdersFromSheet();
+                if (data.status === 'success' && Array.isArray(data.orders)) {
                     const newCount = data.orders.length;
                     const prevCount = lastKnownOrderCount;
 
                     if (prevCount >= 0 && newCount > prevCount) {
-                        // New orders detected!
-                        const newOrders = data.orders.slice(prevCount);
-                        newOrders.forEach(order => notifyNewOrder(order));
+                        data.orders.slice(prevCount).forEach(order => notifyNewOrder(order));
                     }
-
-                    // Update cached data
-                    cachedOrders = data.orders;
                     lastKnownOrderCount = newCount;
 
-                    // Refresh stats silently (including profit)
-                    const totalSales = cachedOrders.length;
-                    const totalRevenue = cachedOrders.reduce((sum, o) => sum + (parseFloat(o['Total']) || 0), 0);
-                    let totalProfit = 0;
-                    cachedOrders.forEach(o => {
-                        let orderProfit = 0;
-                        const items = (o['Items'] || '').split(', ');
-                        items.forEach(itemStr => {
-                            if (!itemStr.trim()) return;
-                            const parsed = parseSingleItem(itemStr);
-                            if (parsed.name) {
-                                const product = products.find(p => p.name === parsed.name);
-                                if (product && product.costPrice) {
-                                    orderProfit += (product.price - product.costPrice) * parsed.qty;
-                                }
-                            }
-                        });
-                        o.calculatedProfit = orderProfit;
-                        totalProfit += orderProfit;
-                    });
-                    const revEl = document.getElementById('stat-revenue');
-                    const salesEl = document.getElementById('stat-sales');
-                    const profitEl = document.getElementById('stat-profit');
-                    if (revEl) revEl.textContent = '₹' + totalRevenue;
-                    if (salesEl) salesEl.textContent = totalSales;
-                    if (profitEl) profitEl.textContent = '₹' + Math.round(totalProfit * 100) / 100;
-
-                    renderDailySummary();
-                    renderBestSellers();
+                    applyOrders(data.orders);
+                    if (document.getElementById('tab-orders').classList.contains('active')) renderOrders();
                 }
             } catch (e) {
                 console.warn('Notification poll failed:', e);
+            } finally {
+                pollInFlight = false;
             }
         }
 
@@ -3227,68 +3382,63 @@
             const items = order['Items'] || 'Unknown items';
             const orderId = order['Order ID'] || '';
             const delivery = order['Delivery Type'] === 'delivery'
-                ? `🚪 Floor ${order['Floor']}, Room ${order['Room']}`
-                : '🏃 Pickup';
+                ? `Floor ${order['Floor']}, Room ${order['Room']}`
+                : 'Pickup';
 
-            // 1. Play audio chime
             playNotificationChime();
 
-            // 2. Browser notification
             if ('Notification' in window && Notification.permission === 'granted') {
-                const notif = new Notification('🛒 New Order! ' + orderId, {
-                    body: `${name} ordered ₹${total}\n${items}\n${delivery}`,
-                    icon: 'images/logo.png',
-                    tag: 'order-' + orderId,
-                    requireInteraction: true,
-                    vibrate: [200, 100, 200, 100, 200]
-                });
-                notif.onclick = () => {
-                    window.focus();
-                    switchTab('orders');
-                    notif.close();
-                };
+                try {
+                    const notif = new Notification('🛒 New Order! ' + orderId, {
+                        body: `${name} ordered ₹${total}\n${items}\n${delivery}`,
+                        icon: 'favicon.svg',
+                        tag: 'order-' + orderId,
+                        requireInteraction: true
+                    });
+                    notif.onclick = () => {
+                        window.focus();
+                        switchTab('orders');
+                        notif.close();
+                    };
+                } catch (e) {
+                    console.warn('System notification unavailable:', e);
+                }
             }
 
-            // 3. In-app notification banner
             showOrderBanner(order);
         }
 
         function playNotificationChime() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            const ctx = audioCtx;
-            const now = ctx.currentTime;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const ctx = audioCtx;
+                if (ctx.state === 'suspended') ctx.resume();
+                const now = ctx.currentTime;
 
-            // Pleasant 3-note chime: C5 → E5 → G5
-            const notes = [523.25, 659.25, 783.99];
-            notes.forEach((freq, i) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.frequency.value = freq;
-                osc.type = 'sine';
-                gain.gain.setValueAtTime(0, now + i * 0.15);
-                gain.gain.linearRampToValueAtTime(0.3, now + i * 0.15 + 0.05);
-                gain.gain.linearRampToValueAtTime(0, now + i * 0.15 + 0.4);
-                osc.start(now + i * 0.15);
-                osc.stop(now + i * 0.15 + 0.5);
-            });
+                // Pleasant 3-note chime: C5 → E5 → G5
+                const notes = [523.25, 659.25, 783.99];
+                notes.forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = freq;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0, now + i * 0.15);
+                    gain.gain.linearRampToValueAtTime(0.3, now + i * 0.15 + 0.05);
+                    gain.gain.linearRampToValueAtTime(0, now + i * 0.15 + 0.4);
+                    osc.start(now + i * 0.15);
+                    osc.stop(now + i * 0.15 + 0.5);
+                });
+            } catch (e) {
+                console.warn('Chime failed:', e);
+            }
         }
 
         function showOrderBanner(order) {
-            // Remove existing banner
             const existing = document.getElementById('order-notif-banner');
             if (existing) existing.remove();
 
-            const name = order['Customer Name'] || 'Unknown';
-            const total = order['Total'] || '0';
-            const items = order['Items'] || '';
-            const orderId = order['Order ID'] || '';
-            const delivery = order['Delivery Type'] === 'delivery'
-                ? `🚪 F${order['Floor']} R${order['Room']}`
-                : '🏃 Pickup';
             const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
             const banner = document.createElement('div');
@@ -3298,7 +3448,6 @@
                 banner.classList.remove('show');
                 setTimeout(() => banner.remove(), 500);
                 switchTab('orders');
-                fetchOrders();
             };
             banner.innerHTML = `
                 <div class="notif-header">
@@ -3306,20 +3455,18 @@
                     <div class="notif-time">${time}</div>
                 </div>
                 <div class="notif-body">
-                    <strong>${name}</strong> • ${orderId}<br>
-                    ${items}<br>
-                    ${delivery}
+                    <strong>${escapeHtml(order['Customer Name'] || 'Unknown')}</strong> • ${escapeHtml(order['Order ID'] || '')}<br>
+                    ${escapeHtml(order['Items'] || '')}<br>
+                    ${formatDelivery(order, false)}
                 </div>
-                <div class="notif-amount">₹${total}</div>
+                <div class="notif-amount">₹${escapeHtml(order['Total'] || '0')}</div>
             `;
             document.body.appendChild(banner);
 
-            // Animate in
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => banner.classList.add('show'));
             });
 
-            // Auto-dismiss after 15 seconds
             setTimeout(() => {
                 if (banner.parentNode) {
                     banner.classList.remove('show');
@@ -3328,11 +3475,19 @@
             }, 15000);
         }
 
-        window.toggleNotifications = toggleNotifications;
+        // Expose functions to global scope for onclick handlers (required with type="module")
+        Object.assign(window, {
+            login, logout, showAddModal, openEdit, closeModal, saveProduct, deleteProduct,
+            toggleStock, updateStock, toggleAllStock, toggleSidebar, closeSidebar,
+            handleImageUpload, previewImage, onBgToggleChange, switchTab, pushChanges, onSettingChange,
+            renderProductList, toggleStoreOpen, toggleDeliveryEnabled, renderDailySummary, renderBestSellers,
+            showAddPromoModal, openEditPromo, closePromoModal, savePromo, deletePromo,
+            togglePromoActive, togglePromoTypeFields, fetchOrders, renderOrders, printOrder, toggleNotifications
+        });
 
         // Warn on unsaved changes
         window.addEventListener('beforeunload', (e) => {
-            if (hasUnsavedChanges) { e.preventDefault(); e.returnValue = ''; }
+            if (hasUnsavedChanges || imageProcessing) { e.preventDefault(); e.returnValue = ''; }
         });
     </script>
 </body>
